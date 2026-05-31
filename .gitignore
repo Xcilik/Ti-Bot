@@ -1,0 +1,35 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+web_modules/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Databases & Sessions
+database/*.json
+database/*.bak
+database/jadibot/
+database/temp/
+session/
+sessions/
+
+# Temporary / test scratch directories
+scratch/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# OpenRouter Secret
+openrouter_key.json
+
