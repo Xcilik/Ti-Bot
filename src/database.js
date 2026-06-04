@@ -169,6 +169,30 @@ class JsonDB {
 			}
 		}
 	}
+	
+	writeSync = (data) => {
+		this.data = data || global.db || {};
+		try {
+			let dirname = path.dirname(this.file);
+			if (!fs.existsSync(dirname)) {
+				fs.mkdirSync(dirname, { recursive: true });
+			}
+			if (fs.existsSync(this.file)) {
+				fs.copyFileSync(this.file, this.file + '.bak');
+			}
+			if (Object.keys(this.data).length > 0) {
+				const safeData = JSON.stringify(this.data, (key, value) => {
+					if (typeof value === 'bigint') {
+						return value.toString();
+					}
+					return value;
+				}, 2);
+				fs.writeFileSync(this.file, safeData);
+			}
+		} catch (e) {
+			console.error('❌ Write Database Sync failed: ', e);
+		}
+	}
 }
 
 const dataBase = (source) => {

@@ -76,20 +76,18 @@ global.mess = {
 
 global.APIs = {
 	naze: 'https://api.naze.biz.id',
-	neosantara: 'https://api.neosantara.xyz/v1',
 }
 global.APIKeys = {
-	'https://api.naze.biz.id': 'nz-298327ff62',
-	'https://api.neosantara.xyz/v1': 'API_KEY_NEOSANTARA_AI',
+	'https://api.naze.biz.id': 'nz-273e5450f5',
 }
 
 // Jadwal Sholat (fallback jika API gagal, akan di-update otomatis dari API Aladhan)
 global.jadwalSholat = {
-	Subuh: '04:30',
-	Dzuhur: '12:06',
-	Ashar: '15:21',
-	Maghrib: '18:08',
-	Isya: '19:00'
+	Subuh: '04:35',
+	Dzuhur: '11:51',
+	Ashar: '15:13',
+	Maghrib: '17:44',
+	Isya: '18:58'
 }
 
 global.badWords = ["dongo", "konsol"] // input kata-kata toxic yg lain. ex: ['dongo','dongonya']

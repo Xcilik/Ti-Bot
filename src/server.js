@@ -135,7 +135,7 @@ async function setupDashboard(database, storeDB, naze) {
 					contacts: filteredStore.contacts || {}, presences: filteredStore.presences || {}, groupMetadata: filteredStore.groupMetadata || {}
 				} : { contacts: {}, presences: {}, groupMetadata: {} },
 				Settings: {
-					owner: global.owner || [], author: global.author || 'Nazedev', botname: global.botname || 'Hitori Bot',
+					owner: global.owner || [], author: global.author || 'Nazedev', botname: global.botname || 'Ti Assistant Bot',
 					packname: global.packname || 'Bot WhatsApp', timezone: global.timezone || 'Asia/Jakarta',
 					locale: global.locale || 'id', listprefix: global.listprefix || ['+', '!', '.'],
 					pairing_code: global.pairing_code ?? true, number_bot: global.number_bot || '',
@@ -227,6 +227,9 @@ async function setupDashboard(database, storeDB, naze) {
 			callback({ success: false, status: 500, message: 'Server Error!' });
 		}
 	});
+	
+	return socket;
+
 }
 
 export { setupDashboard };

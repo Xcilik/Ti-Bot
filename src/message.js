@@ -165,7 +165,7 @@ async function GroupParticipantsUpdate(naze, update, store) {
 						return (cleanId && ownerNumber.includes(cleanId)) || (cleanPhone && ownerNumber.includes(cleanPhone));
 					});
 					
-					const botname = global.botname || 'Hitori Bot';
+					const botname = global.botname || 'Ti Assistant Bot';
 					if (!isSewa) {
 						if (!hasOwnerInGroup) {
 							const welcomeSewa = `Halo semua aku adalah *${botname}*! 👋\n\nUntuk mengaktifkan dan menggunakan fitur-fitur bot di grup ini, silakan melakukan penyewaan terlebih dahulu.\n\nSilakan tekan link di bawah ini untuk melakukan sewa langsung ke chat pribadi bot:\n👉 https://wa.me/${botNumber.split('@')[0]}?text=.sewa%20${id}`;
@@ -243,6 +243,10 @@ async function GroupParticipantsUpdate(naze, update, store) {
 
 async function LoadDataBase(naze, m) {
 	try {
+		if (m.sender && m.sender.endsWith('@lid')) {
+			let resolved = naze.findJidByLid(m.sender, global.store)
+			if (resolved) m.sender = naze.decodeJid(resolved)
+		}
 		const botNumber = await naze.decodeJid(naze.user.id);
 		let game = global.db.game || {};
 		let premium = global.db.premium || [];
@@ -279,7 +283,7 @@ async function LoadDataBase(naze, m) {
 			author: global.author || 'Nazedev',
 			authorPrefix: '',
 			autobackup: false,
-			botname: global.botname || 'Hitori Bot',
+			botname: global.botname || 'Ti Assistant Bot',
 			packname: global.packname || 'Bot WhatsApp',
 			template: 1,
 			owner: global.owner,
@@ -417,10 +421,17 @@ async function Solving(naze, store) {
 	
 	naze.decodeJid = (jid) => {
 		if (!jid) return jid
-		if (/:\d+@/gi.test(jid)) {
-			let decode = jidDecode(jid) || {}
-			return decode.user && decode.server && decode.user + '@' + decode.server || jid
-		} else return jid
+		let decode = jidDecode(jid)
+		if (!decode) return jid
+		let user = decode.user || ''
+		if (user.includes('.')) {
+			user = user.split('.')[0]
+		}
+		if (user.includes(':')) {
+			user = user.split(':')[0]
+		}
+		let server = decode.server || 's.whatsapp.net'
+		return user + '@' + server
 	}
 	
 	naze.findJidByLid = (lid, store, resolve = false) => {
@@ -1076,6 +1087,10 @@ async function Serialize(naze, msg, store) {
 		m.isGroup = m.chat.endsWith('@g.us')
 		if (!m.isGroup && m.chat.endsWith('@lid')) m.chat = naze.findJidByLid(m.chat, store) || m.chat;
 		m.sender = naze.decodeJid(m.fromMe && naze.user.id || m.key.participantAlt || m.key.participant || m.chat || '')
+		if (m.sender && m.sender.endsWith('@lid')) {
+			let resolved = naze.findJidByLid(m.sender, store);
+			if (resolved) m.sender = naze.decodeJid(resolved);
+		}
 		if (m.isGroup) {
 			if (!store.groupMetadata) store.groupMetadata = await naze.groupFetchAllParticipating().catch(e => ({}));
 			let metadata = store.groupMetadata[m.chat] ? store.groupMetadata[m.chat] : (store.groupMetadata[m.chat] = await naze.groupMetadata(m.chat).catch(e => ({ ...store.groupMetadata[m.chat] })));

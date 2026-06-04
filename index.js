@@ -46,8 +46,9 @@ const userInfoSyt = () => {
 }
 
 try {
+	dns.setDefaultResultOrder('ipv4first');
 	dns.setServers(['8.8.8.8', '1.1.1.1']);
-	console.log(chalk.yellowBright('[SYSTEM] Custom DNS Google & Cloudflare.'));
+	console.log(chalk.yellowBright('[SYSTEM] Custom DNS Google & Cloudflare (IPv4 preferred).'));
 } catch (e) {
 	console.log(chalk.yellowBright('[SYSTEM] failed to custom DNS:'), e.message);
 }
@@ -116,8 +117,55 @@ global.fetchApi = async (endpoint = '/', data = {}, options = {}) => {
 	})
 }
 
+global.callNazeAI = async (query, imageUrl = '') => {
+	let settings;
+	try {
+		settings = JSON.parse(fs.readFileSync('./setting.json', 'utf-8'));
+	} catch (e) {
+		settings = {
+			apiKeys: ["nz-273e5450f5", "nz-6bafa1c935", "nz-5e3ccd8154", "nz-99929aee2d", "nz-5487a58d50"],
+			endpoints: [
+				"https://api.naze.biz.id/ai/gemini-flash-lite",
+				"https://api.naze.biz.id/ai/chat",
+				"https://api.naze.biz.id/ai/chat2",
+				"https://api.naze.biz.id/ai/message",
+				"https://api.naze.biz.id/ai/gemini"
+			]
+		};
+	}
+	
+	const keys = settings.apiKeys || [];
+	const endpoints = settings.endpoints || [];
+	
+	let lastError = null;
+	
+	for (const endpoint of endpoints) {
+		for (const key of keys) {
+			try {
+				const params = { query, apikey: key };
+				if (imageUrl) {
+					params.url = imageUrl;
+				}
+				const res = await axios.get(endpoint, { params, timeout: 15000 });
+				if (res.data && res.data.success !== false) {
+					let text = res.data?.result?.text || res.data?.result?.message || res.data?.result;
+					if (text) {
+						return text;
+					}
+				}
+			} catch (e) {
+				lastError = e;
+				const status = e.response ? e.response.status : 'NETWORK_ERROR';
+				console.warn(`[AI Fallback] Endpoint ${endpoint} with key ${key} failed (${status}): ${e.message}`);
+			}
+		}
+	}
+	
+	throw lastError || new Error("All AI endpoints and keys failed");
+};
+
 const storeDB = dataBase(global.tempatStore);
-const database = dataBase(global.tempatDB);
+const database = global.database = dataBase(global.tempatDB);
 const msgRetryCounterCache = new NodeCache({ stdTTL: 60 * 60, useClones: false });
 
 if (fs.existsSync(tempDir)) {
@@ -157,6 +205,10 @@ async function startNazeBot() {
 				game: {},
 				groups: {},
 				database: {},
+				absen: {},
+				pendingSewa: {},
+				toPdf: {},
+				reminders: [],
 				premium: [],
 				sewa: [],
 				...(loadData || {}),
@@ -166,7 +218,35 @@ async function startNazeBot() {
 			global.db = loadData
 		}
 		global.db.database = global.db.database || {}
-		global.db.database.reminders = global.db.database.reminders || []
+		global.db.reminders = global.db.reminders || []
+		global.db.absen = global.db.absen || {}
+		global.db.pendingSewa = global.db.pendingSewa || {}
+		global.db.toPdf = global.db.toPdf || {}
+		global.db.remindersolatall = global.db.remindersolatall || false
+
+		// Database migration: Move system keys out of global.db.database to the root of global.db
+		if (global.db.database) {
+			if (global.db.database.reminders) {
+				global.db.reminders = global.db.database.reminders;
+				delete global.db.database.reminders;
+			}
+			if (global.db.database.absen) {
+				global.db.absen = global.db.database.absen;
+				delete global.db.database.absen;
+			}
+			if (global.db.database.pendingSewa) {
+				global.db.pendingSewa = global.db.database.pendingSewa;
+				delete global.db.database.pendingSewa;
+			}
+			if (global.db.database.toPdf) {
+				global.db.toPdf = global.db.database.toPdf;
+				delete global.db.database.toPdf;
+			}
+			if (global.db.database.sewaBotToggle !== undefined) {
+				global.db.sewaBotToggle = global.db.database.sewaBotToggle;
+				delete global.db.database.sewaBotToggle;
+			}
+		}
 		if (!storeLoadData || Object.keys(storeLoadData).length === 0) {
 			global.store = {
 				contacts: {},
@@ -412,6 +492,7 @@ async function startNazeBot() {
 				console.log(chalk.greenBright(`[SHOLAT] Jadwal sholat hari ini (${global._jadwalSholatDate}): Subuh ${t.Fajr}, Dzuhur ${t.Dhuhr}, Ashar ${t.Asr}, Maghrib ${t.Maghrib}, Isya ${t.Isha}`));
 			}
 		} catch (e) {
+			global._jadwalSholatDate = moment.tz(global.timezone).format('YYYY-MM-DD');
 			console.error(chalk.redBright('[SHOLAT] Gagal fetch jadwal sholat dari API, pakai jadwal default:'), e.message);
 		}
 	}
@@ -439,11 +520,13 @@ async function startNazeBot() {
 				if (jamSholat === waktu && global.waktusholat[sholat] !== hariIni) {
 					global.waktusholat[sholat] = hariIni;
 					
-					let hasReminderSolat = false;
-					for (const [idnya, settings] of Object.entries(global.db.groups)) {
-						if (settings.remindersolat) {
-							hasReminderSolat = true;
-							break;
+					let hasReminderSolat = global.db.remindersolatall || false;
+					if (!hasReminderSolat) {
+						for (const [idnya, settings] of Object.entries(global.db.groups)) {
+							if (settings.remindersolat) {
+								hasReminderSolat = true;
+								break;
+							}
 						}
 					}
 					
@@ -451,8 +534,7 @@ async function startNazeBot() {
 					if (hasReminderSolat) {
 						let prompt = `Buat 1 kalimat ajakan sholat ${sholat} yang hangat dan sopan, tanpa jam, tanpa markdown, teks polos saja`;
 						try {
-							let res = await global.fetchApi('/ai/gemini-flash-lite', { query: prompt });
-							aiKataKata = res?.result?.text;
+							aiKataKata = await global.callNazeAI(prompt);
 						} catch (e) {
 							console.error("AI error for sholat reminder:", e);
 						}
@@ -472,7 +554,7 @@ async function startNazeBot() {
 					}
 					
 					for (const [idnya, settings] of Object.entries(global.db.groups)) {
-						if (settings.remindersolat) {
+						if (settings.remindersolat || global.db.remindersolatall) {
 							try {
 								let metadata = global.store?.groupMetadata?.[idnya];
 								if (!metadata) {
@@ -515,9 +597,9 @@ async function startNazeBot() {
 
 	if (!global._reminderInterval) {
 		global._reminderInterval = setInterval(async () => {
-			if (!global.naze || !global.db?.database?.reminders) return;
+			if (!global.naze || !global.db?.reminders) return;
 			const now = Date.now();
-			const reminders = global.db.database.reminders;
+			const reminders = global.db.reminders;
 			for (let i = reminders.length - 1; i >= 0; i--) {
 				const rem = reminders[i];
 				if (now >= rem.time) {
@@ -558,10 +640,26 @@ async function startNazeBot() {
 
 startNazeBot()
 
-const cleanup = async (signal) => {
+const cleanup = (signal) => {
 	console.log(chalk.greenBright(`[SYSTEM] Received ${signal}. Menyimpan database...`));
-	if (global.db) await database.write(global.db)
-	if (global.store) await storeDB.write(global.store)
+	try {
+		if (global.db) {
+			if (typeof database.writeSync === 'function') {
+				database.writeSync(global.db);
+			} else {
+				database.write(global.db);
+			}
+		}
+		if (global.store) {
+			if (typeof storeDB.writeSync === 'function') {
+				storeDB.writeSync(global.store);
+			} else {
+				storeDB.write(global.store);
+			}
+		}
+	} catch (e) {
+		console.error('Error saving database on cleanup:', e);
+	}
 	console.log('Menutup sistem. Exiting...')
 	process.exit(0)
 }

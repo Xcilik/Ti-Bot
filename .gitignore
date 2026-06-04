@@ -22,6 +22,7 @@ database/jadibot/
 database/temp/
 session/
 sessions/
+nazedev/
 
 # Temporary / test scratch directories
 scratch/
@@ -32,4 +33,5 @@ Thumbs.db
 
 # OpenRouter Secret
 openrouter_key.json
+setting.json
 

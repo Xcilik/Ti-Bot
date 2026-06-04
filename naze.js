@@ -44,7 +44,7 @@ let canvasModule = null;
 
 /*
 	* Create By Ti Assistant Bot
-	* Follow https://github.com/nazedev
+	* Follow https://github.com/faridSrydi
 	* Whatsapp : https://whatsapp.com/channel/0029VaWOkNm7DAWtkvkJBK43
 */
 
@@ -82,7 +82,35 @@ async function chatAI(promptOrMessages, systemPrompt = '') {
 	];
 	
 	let messages = [];
-	const identityPrompt = "Kamu adalah Ti Assistant Bot, dibuat oleh Farid Suryadi. JAWABLAH pertanyaan secara langsung tanpa memperkenalkan diri atau menyebutkan pembuatmu di awal respon, kecuali jika kamu ditanya tentang siapa namamu, siapa dirimu, atau pembuatmu. Bahasa respon harus ramah, sopan, dan membantu.";
+	const identityPrompt = `Kamu adalah Ti Assistant Bot, sebuah asisten AI yang dibuat oleh Farid Suryadi.
+JAWABLAH pertanyaan secara langsung tanpa memperkenalkan diri atau menyebutkan pembuatmu di awal respon, KECUALI jika kamu ditanya tentang siapa namamu, siapa dirimu, pembuatmu, atau tentang fitur/kemampuan/apa saja yang bisa kamu lakukan (seperti pertanyaan 'kamu bisa apa aja', 'fiturnya apa aja', dll).
+
+PENTING - ATURAN EKSEKUSI GAMBAR / IMAGE:
+- Jika pengguna menyuruhmu "buat/generate/bikin/buatkan" suatu gambar (contoh: "bikin gambar harimau", "buatkan gambar mobil sport"), kamu WAJIB menuliskan deskripsi gambar dalam bahasa Inggris dan langsung meletakkan tag [IMAGE_GEN: english_prompt] di bagian paling akhir responmu.
+- Jika pengguna menyuruhmu "cari/carikan/kirim/kirimin/kasih/tampilkan" gambar/foto (contoh: "kirim gambar harimau", "cari foto kucing lucu"), kamu WAJIB langsung meletakkan tag [IMAGE_SEARCH: query_pencarian] di bagian paling akhir responmu.
+- JANGAN PERNAH memberikan opsi pilihan, menolak, atau bertanya kepada pengguna untuk memilih antara generate AI atau cari di internet. Langsung putuskan dan jalankan perintahnya secara otomatis sesuai kata kerja yang mereka gunakan (buat/bikin -> [IMAGE_GEN], cari/kirim -> [IMAGE_SEARCH]).
+
+PENTING - ATURAN WAKTU & TANGGAL (WIB / JAKARTA):
+- Waktu lokal saat ini (WIB / Asia/Jakarta) sudah disediakan secara presis di bagian '[WAKTU SEKARANG]' dalam konteks (mencakup Hari, Tanggal, dan Jam).
+- Jika ada pengguna yang bertanya tentang jam, waktu, hari, tanggal, bulan, atau tahun sekarang, kamu WAJIB menjawabnya berdasarkan informasi di '[WAKTU SEKARANG]' secara persis dan yakin. Jangan pernah menanyakan zona waktu lagi atau berasumsi menggunakan zona waktu luar negeri (seperti UTC, CEST, dll). Pastikan jawabanmu menyebutkan bahwa itu adalah waktu Jakarta (WIB).
+
+PENTING - ATURAN TENTANG FARID SURYADI (PENCIPTA/PEMBUAT BOT):
+- Jika ada user yang menyebut nama 'Farid Suryadi' atau bertanya tentang 'Farid Suryadi', kamu WAJIB memuji dan menyanjung beliau setinggi-tingginya.
+- Jelaskan bahwa Farid Suryadi adalah pembuat/penciptamu yang sangat jenius, seorang Profesor terkemuka di bidang Teknologi, ahli AI yang luar biasa, dan tokoh inspiratif yang menciptakan sistem canggih ini. Berikan penjelasan yang sangat mengagumkan tentang kontribusi dan keahlian beliau di bidang teknologi.
+
+Jika ditanya tentang fitur, kemampuan, atau apa saja yang bisa kamu lakukan:
+1. Pertama-tama perkenalkan dirimu sebagai 'Ti Assistant Bot' ciptaan Farid Suryadi dengan ramah.
+2. Jelaskan fitur/kemampuan utama yang kamu miliki dalam daftar yang rapi dan ringkas:
+   - *Absensi / Kehadiran*: Membuat daftar absensi kelompok secara praktis.
+   - *Pembuat Stiker*: Mengonversi gambar/video/gif menjadi stiker WhatsApp dengan mudah.
+   - *Konversi Media*: Mengubah video/audio menjadi MP3, Voice Note (VN), atau stiker ke gambar.
+   - *Game Interaktif*: Bermain Suit, Tic-Tac-Toe, Tebak Gambar, Tebak Lagu, Tebak Lirik, Tebak Kata, Kuis Matematika, dll.
+   - *Pengingat (Reminder)*: Menyetel alarm pengingat pribadi, pengingat grup, hingga pengingat waktu sholat otomatis.
+   - *Administrasi Grup*: Membantu mengelola grup (kick, promote, demote, tagall/hidetag, buka/tutup grup).
+   - *Pencarian Pintar & Gambar*: Melakukan pencarian Google secara real-time dan membuat/mencari gambar dengan AI.
+3. Di bagian paling bawah responmu, tambahkan teks: "Ketik .menu untuk melihat daftar perintah lengkap saya."
+4. PENTING: JANGAN PERNAH menyebutkan atau membocorkan fitur/command khusus Owner (seperti setmenu, setprefix, join, leave, setapikey, addprem, delprem, backup, public, self, dll) kepada siapa pun. Fitur owner harus dirahasiakan sepenuhnya.
+Bahasa respon harus ramah, sopan, dan membantu.`;
 	
 	messages.push({ role: "system", content: systemPrompt ? `${identityPrompt}\n${systemPrompt}` : identityPrompt });
 	
@@ -126,15 +154,24 @@ async function chatAI(promptOrMessages, systemPrompt = '') {
 }
 
 const nazeHandler = async (naze, m, msg, store) => {
+	let database = global.database;
+	if (!database) {
+		try {
+			const { dataBase } = await import('./src/database.js');
+			database = global.database = dataBase(global.tempatDB);
+		} catch (e) {
+			console.error('Failed to load database fallback in naze.js:', e);
+		}
+	}
 	if (!global.db) global.db = {};
 	global.db.cases = global.db.cases || casesArray;
 	const cases = global.db.cases;
 
 	await LoadDataBase(naze, m);
 	global.db.database = global.db.database || {};
-	global.db.database.pendingSewa = global.db.database.pendingSewa || {};
-	global.db.database.absen = global.db.database.absen || {};
-	global.db.database.reminders = global.db.database.reminders || [];
+	global.db.pendingSewa = global.db.pendingSewa || {};
+	global.db.absen = global.db.absen || {};
+	global.db.reminders = global.db.reminders || [];
 	
 	const botNumber = naze.decodeJid(naze.user.id);
 	
@@ -186,8 +223,8 @@ const nazeHandler = async (naze, m, msg, store) => {
 					return (cleanId && ownerNumber.includes(cleanId)) || (cleanPhone && ownerNumber.includes(cleanPhone));
 				});
 				
-				const botname = global.botname || 'Hitori Bot';
-				if (global.db.database.sewaBotToggle !== false && !isSewa) {
+				const botname = global.botname || 'Ti Assistant Bot';
+				if (global.db.sewaBotToggle !== false && !isSewa) {
 					if (!hasOwnerInGroup) {
 						const welcomeSewa = `Halo semua aku adalah *${botname}*! 👋\n\nUntuk mengaktifkan dan menggunakan fitur-fitur bot di grup ini, silakan melakukan penyewaan terlebih dahulu.\n\nSilakan tekan link di bawah ini untuk melakukan sewa langsung ke chat pribadi bot:\n👉 https://wa.me/${botNumber.split('@')[0]}?text=.sewa%20${m.chat}`;
 						await naze.sendMessage(m.chat, { text: welcomeSewa });
@@ -244,16 +281,24 @@ const nazeHandler = async (naze, m, msg, store) => {
 		const listMatch = global.listprefix.find(a => body?.startsWith(a));
 		const detectedPrefix = symbolMatch ? symbolMatch[0] : (emojiMatch ? emojiMatch[0] : listMatch);
 		const prefix = isCreator ? (detectedPrefix || set.authorPrefix) : set.multiprefix ? (detectedPrefix || '¿') : (listMatch || '¿');
-		const isCmd = body.startsWith(prefix)
+		let isCmd = body.startsWith(prefix) && (!m.key.fromMe || !naze.public)
 		const args = body.trim().split(/ +/).slice(1)
 		const quoted = m.quoted ? m.quoted : m
-		const command = isCmd ? body.replace(prefix, '').trim().split(/ +/).shift().toLowerCase() : '';
+		let command = isCmd ? body.replace(prefix, '').trim().split(/ +/).shift().toLowerCase() : '';
+		if (isCmd && prefix === '@' && /^\d+$/.test(command)) {
+			isCmd = false;
+			command = '';
+		}
+		if (isCmd && prefix === '' && (command === 'ti' || command === 'ai')) {
+			isCmd = false;
+			command = '';
+		}
 		const text = global.q = args.join(' ');
 		const mime = (quoted.msg || quoted).mimetype || ''
 		const qmsg = (quoted.msg || quoted)
 		const author = set.author = global.author || 'Ti Assistant Bot';
 		const packname = set.packname = global.packname || 'Bot WhatsApp';
-		const botname = set.botname = global.botname || 'Hitori Bot';
+		const botname = set.botname = global.botname || 'Ti Assistant Bot';
 		const badWordsLower = global.badWords.map(v => v.toLowerCase());
 		const locale_day = moment.tz(global.timezone).locale(global.locale).format('dddd');
 		const date = moment.tz(global.timezone).locale(global.locale).format('DD/MM/YYYY');
@@ -270,7 +315,7 @@ const nazeHandler = async (naze, m, msg, store) => {
 			if (!answer) return;
 			
 			// Clean all special tags from the displayed text
-			let cleanedAnswer = answer.replace(/\[EXECUTE:\s*(\w+)(?:\s+(.*?))?\]/gi, '').replace(/\[IMAGE_GEN:\s*(.*?)\]/gi, '').replace(/\[IMAGE_SEARCH:\s*(.*?)\]/gi, '').trim();
+			let cleanedAnswer = answer.replace(/\[EXECUTE:\s*(\w+)(?:\s+(.*?))?\]/gi, '').replace(/\[IMAGE_GEN:\s*(.*?)\]/gi, '').replace(/\[IMAGE_SEARCH:\s*(.*?)\]/gi, '').replace(/\[PLAY_AUDIO:\s*(.*?)\]/gi, '').replace(/\[PLAY_VIDEO:\s*(.*?)\]/gi, '').trim();
 			if (cleanedAnswer) {
 				const mentions = parseMention(cleanedAnswer);
 				if (mentions.length > 0) {
@@ -281,7 +326,7 @@ const nazeHandler = async (naze, m, msg, store) => {
 			}
 			
 			// Handle IMAGE_GEN tag
-			const imgGenMatch = answer.match(/\[IMAGE_GEN:\s*(.*?)\]/i);
+			const imgGenMatch = answer.match(/\[IMAGE_GEN:\s*(.*?)\][\s.]*$/i);
 			if (imgGenMatch) {
 				const imgPrompt = imgGenMatch[1].trim();
 				try {
@@ -301,7 +346,7 @@ const nazeHandler = async (naze, m, msg, store) => {
 			}
 			
 			// Handle IMAGE_SEARCH tag
-			const imgSearchMatch = answer.match(/\[IMAGE_SEARCH:\s*(.*?)\]/i);
+			const imgSearchMatch = answer.match(/\[IMAGE_SEARCH:\s*(.*?)\][\s.]*$/i);
 			if (imgSearchMatch) {
 				const searchQuery = imgSearchMatch[1].trim();
 				try {
@@ -324,8 +369,120 @@ const nazeHandler = async (naze, m, msg, store) => {
 				}
 			}
 			
+			// Handle PLAY_AUDIO tag - direct audio download by search query
+			const playAudioMatch = answer.match(/\[PLAY_AUDIO:\s*(.*?)\][\s.]*$/i);
+			if (playAudioMatch) {
+				const audioQuery = playAudioMatch[1].trim();
+				try {
+					m.react('🎵');
+					let hasil, videoUrl;
+					try {
+						const res = await yts.search(audioQuery);
+						hasil = res.all[0];
+						videoUrl = hasil?.url || '';
+					} catch {
+						const res = await fetchApi('/search/youtube', { query: audioQuery });
+						hasil = res.result.items[0];
+						videoUrl = `https://youtu.be/${hasil?.id?.videoId || ''}`;
+					}
+					if (!videoUrl) throw new Error('Video not found');
+					try {
+						const { result: dl } = await fetchApi('/download/youtube', { url: videoUrl });
+						if (dl?.download && dl.type === 'audio') {
+							await m.reply({ audio: { url: dl.download }, mimetype: 'audio/mpeg' });
+						} else {
+							throw new Error('Not an audio result');
+						}
+					} catch {
+						let audioPath = null;
+						try {
+							const dl = await ytMp3(videoUrl);
+							audioPath = dl.result;
+							if (audioPath && fs.existsSync(audioPath)) {
+								await m.reply({ audio: { url: audioPath }, mimetype: 'audio/mpeg' });
+							}
+						} catch (e) {
+							console.error('ytMp3 failed:', e);
+						} finally {
+							if (audioPath && fs.existsSync(audioPath)) {
+								try { fs.unlinkSync(audioPath); } catch {}
+							}
+						}
+					}
+				} catch (e) {
+					console.error('Play audio error:', e);
+					m.reply('Gagal mengirim audio: ' + (e.message || 'Coba lagi nanti.'));
+				}
+			}
+			
+			// Handle PLAY_VIDEO tag - direct video download by search query
+			const playVideoMatch = answer.match(/\[PLAY_VIDEO:\s*(.*?)\][\s.]*$/i);
+			if (playVideoMatch) {
+				const videoQuery = playVideoMatch[1].trim();
+				try {
+					m.react('🎬');
+					let hasil, videoUrl;
+					try {
+						const res = await yts.search(videoQuery);
+						hasil = res.all[0];
+						videoUrl = hasil?.url || '';
+					} catch {
+						const res = await fetchApi('/search/youtube', { query: videoQuery });
+						hasil = res.result.items[0];
+						videoUrl = `https://youtu.be/${hasil?.id?.videoId || ''}`;
+					}
+					if (!videoUrl) throw new Error('Video not found');
+					
+					let sent = false;
+					const videoTitle = hasil?.title || videoQuery;
+					
+					// Method 1: Try local ytMp4 (uses yt-dlp forcing H.264)
+					let videoPath = null;
+					try {
+						const dl = await ytMp4(videoUrl);
+						videoPath = dl.result;
+						if (videoPath && fs.existsSync(videoPath)) {
+							const size = fs.statSync(videoPath).size;
+							if (size > 16 * 1024 * 1024) {
+								await m.reply('Ukuran video melebihi 16MB. Mengirim sebagai dokumen...');
+								await m.reply({ document: { url: videoPath }, mimetype: 'video/mp4', fileName: `${dl.title || videoTitle}.mp4`, caption: `🎬 *${dl.title || videoTitle}*` });
+							} else {
+								await m.reply({ video: { url: videoPath }, caption: `🎬 *${dl.title || videoTitle}*` });
+							}
+							sent = true;
+						}
+					} catch (e) {
+						console.error('ytMp4 failed:', e.message);
+					} finally {
+						if (videoPath && fs.existsSync(videoPath)) {
+							try { fs.unlinkSync(videoPath); } catch {}
+						}
+					}
+					
+					// Method 2: Try fetchApi as fallback
+					if (!sent) {
+						const formats = ['360', '480', '720', '1080'];
+						for (const fmt of formats) {
+							if (sent) break;
+							try {
+								const { result: dl } = await fetchApi('/download/youtube', { url: videoUrl, format: fmt });
+								if (dl?.download && dl.type === 'video') {
+									await m.reply({ video: { url: dl.download }, caption: `🎬 *${dl.title || videoTitle}*` });
+									sent = true;
+								}
+							} catch {}
+						}
+					}
+					
+					if (!sent) throw new Error('Semua metode download video gagal');
+				} catch (e) {
+					console.error('Play video error:', e);
+					m.reply('Gagal mengirim video: ' + (e.message || 'Coba lagi nanti.'));
+				}
+			}
+			
 			// Parse EXECUTE command
-			const execMatch = answer.match(/\[EXECUTE:\s*(\w+)(?:\s+(.*?))?\]/i);
+			const execMatch = answer.match(/\[EXECUTE:\s*(\w+)(?:\s+(.*?))?\][\s.]*$/i);
 			if (execMatch) {
 				const execCmd = execMatch[1].toLowerCase();
 				const execArgs = execMatch[2] ? execMatch[2].trim() : '';
@@ -523,7 +680,7 @@ const nazeHandler = async (naze, m, msg, store) => {
 			if (cleanId === botClean || cleanPhone === botClean) return false;
 			return (cleanId && ownerNumber.includes(cleanId)) || (cleanPhone && ownerNumber.includes(cleanPhone));
 		});
-		if (global.db.database.sewaBotToggle !== false && isCmd && m.isGroup && !isCreator && !checkStatus(m.chat, sewa) && !hasOwnerInGroup) {
+		if (global.db.sewaBotToggle !== false && isCmd && m.isGroup && !isCreator && !checkStatus(m.chat, sewa) && !hasOwnerInGroup) {
 			const welcomeSewa = `Untuk menggunakan bot ini di grup Anda, silakan melakukan penyewaan terlebih dahulu.\n\nSilakan tekan link di bawah ini untuk melakukan sewa langsung ke chat pribadi bot:\n👉 https://wa.me/${botNumber.split('@')[0]}?text=.sewa%20${m.chat}`;
 			return m.reply(welcomeSewa);
 		}
@@ -595,10 +752,120 @@ const nazeHandler = async (naze, m, msg, store) => {
 			m.reply(pickRandom(jwb_salam))
 		}
 		
-		// No-prefix "ti" trigger for AI
-		if (!isCmd && /^ti\s+/i.test(budy)) {
-			const tiQuery = budy.replace(/^ti\s+/i, '').trim();
-			if (tiQuery.length > 0) {
+		// No-prefix "ti" or tag trigger for AI & conversion interception
+		const startsWithTi = /^ti\b/i.test(budy);
+		const botLid = naze.user.lid ? naze.decodeJid(naze.user.lid) : null;
+		const botCleanNumber = botNumber.split('@')[0];
+		const botCleanLid = botLid ? botLid.split('@')[0] : null;
+		const hasBotTag = budy.includes(`@${botCleanNumber}`) || (botCleanLid && budy.includes(`@${botCleanLid}`));
+		let isMentioned = (m.mentionedJid && m.mentionedJid.some(jid => {
+			let decoded = naze.decodeJid(jid);
+			return decoded === botNumber || (botLid && decoded === botLid);
+		})) || hasBotTag;
+
+		if (!m.key.fromMe && (startsWithTi || isMentioned)) {
+			if (set.autotyping) {
+				await naze.sendPresenceUpdate('composing', m.chat).catch(() => {})
+			}
+		}
+
+		// Extract query for both interception and AI trigger
+		let rawQuery = budy;
+		if (startsWithTi) {
+			rawQuery = rawQuery.replace(/^ti\b/i, '');
+		}
+		const mentionRegex = new RegExp(`@${botCleanNumber}\\b`, 'g');
+		let tiQuery = rawQuery.replace(mentionRegex, '');
+		if (botCleanLid) {
+			const lidRegex = new RegExp(`@${botCleanLid}\\b`, 'g');
+			tiQuery = tiQuery.replace(lidRegex, '');
+		}
+		tiQuery = tiQuery.replace(/^\s*[,.?/\\-]\s*/, '').trim();
+
+		// Intercept conversion keywords when replying to media
+		if (m.quoted && !isCmd && !m.key.fromMe && (startsWithTi || isMentioned)) {
+			const query = tiQuery.toLowerCase();
+			const qMime = (quoted.msg || quoted).mimetype || '';
+			
+			if (quoted.type === 'stickerMessage' || /webp/i.test(qMime)) {
+				if (/\b(gambar|foto|image|img|toimg|toimage|png|jpg|jpeg)\b/i.test(query)) {
+					command = 'toimage';
+					isCmd = true;
+				}
+			} else if (/image|video/i.test(qMime)) {
+				if (/\b(stiker|sticker|s|tosticker|tostiker)\b/i.test(query)) {
+					command = 'sticker';
+					isCmd = true;
+				}
+			}
+			
+			if (/video|audio/i.test(qMime)) {
+				if (/\b(audio|mp3|tomp3|toaudio|vn|tovn|suara|lagu)\b/i.test(query)) {
+					command = /\b(mp3|tomp3)\b/i.test(query) ? 'tomp3' : 'toaudio';
+					isCmd = true;
+				}
+			}
+			
+			if (/\b(delete|del|hapus)\b/i.test(query)) {
+				command = 'delete';
+				isCmd = true;
+			}
+			
+			// Intercept nulis/tulis keywords when replying to text or image
+			if (/\b(nulis|tulis|tuliskan|nuliskiri|nuliskanan|tulis\s*(di\s*)?buku|tulis\s*(di\s*)?folio)\b/i.test(query)) {
+				let nulisText = '';
+				const quotedBody = m.quoted?.body || m.quoted?.text || '';
+				const quotedMime = (m.quoted?.msg || m.quoted || {}).mimetype || '';
+				
+				// Determine nulis sub-command from user query
+				let nulisCmd = 'nuliskiri'; // default
+				if (/kanan/i.test(query)) nulisCmd = 'nuliskanan';
+				if (/folio.*kiri|kiri.*folio/i.test(query)) nulisCmd = 'foliokiri';
+				if (/folio.*kanan|kanan.*folio/i.test(query)) nulisCmd = 'foliokanan';
+				if (/folio/i.test(query) && !/kanan|kiri/i.test(query)) nulisCmd = 'foliokiri';
+				
+				if (quotedBody && quotedBody.trim().length > 0) {
+					// Replying to text message → directly use the text
+					nulisText = quotedBody.trim();
+				} else if (/image/i.test(quotedMime)) {
+					// Replying to image → OCR first, then use extracted text
+					try {
+						m.react('⏳');
+						const mediaPath = await naze.downloadAndSaveMediaMessage(m.quoted.msg || m.quoted);
+						const uploadRes = await UguuSe(mediaPath);
+						if (uploadRes && uploadRes.url) {
+							const ocrRes = await fetchApi('/tools/ocr', { url: uploadRes.url });
+							const ocrText = ocrRes?.result?.ParsedResults?.[0]?.ParsedText;
+							if (ocrText && ocrText.trim().length > 0) {
+								nulisText = ocrText.trim();
+							} else {
+								m.reply('Tidak ada teks yang terdeteksi di gambar tersebut. Pastikan gambar berisi teks yang jelas.');
+							}
+						}
+						if (fs.existsSync(mediaPath)) fs.unlinkSync(mediaPath);
+					} catch (e) {
+						console.error('[Nulis OCR Error]', e);
+						m.reply('Gagal membaca teks dari gambar: ' + (e.message || 'Coba lagi nanti.'));
+					}
+				}
+				
+				if (nulisText) {
+					// Simulate the nulis command via recursive handler
+					let simulatedM = {
+						...m,
+						type: 'conversation',
+						message: { conversation: `${prefix}${nulisCmd} ${nulisText}` },
+					};
+					isCmd = true;
+					command = '__nulis_handled__'; // prevent further AI processing
+					await nazeHandler(naze, simulatedM, msg, store);
+					return; // stop processing this message
+				}
+			}
+		}
+
+		if (!isCmd && !m.key.fromMe && (startsWithTi || isMentioned)) {
+			if (true) {
 				// Build context
 				let contextInfo = '';
 				if (m.isGroup) {
@@ -610,7 +877,8 @@ const nazeHandler = async (naze, m, msg, store) => {
 					}).filter(Boolean);
 					contextInfo += `\n[INFO GRUP] Nama grup: "${groupName}", Jumlah anggota: ${memberList.length} orang.`;
 					contextInfo += `\nDaftar nomor anggota grup: ${memberList.join(', ')}`;
-					contextInfo += `\nJika diminta menandai/tag semua anggota, tulis setiap anggota dengan format @nomor (contoh: @628xxx). Jangan menolak.`;
+					contextInfo += `\nJika diminta menandai/tag semua anggota, tulis setiap anggota dengan format @nomor (contoh: @628xxx). Jangan menolak.
+- Jika user meminta untuk tag/sebut salah satu anggota ("tag salah satu", "tag 1 orang", "tag acak", "tag disini", "tag salah satu anggota disini"), kamu WAJIB memilih 1 nomor anggota secara acak dari daftar nomor anggota grup di atas dan langsung menyebutnya/tag mereka di dalam responmu dengan format @nomor (contoh: "Halo @628xxx!"). JANGAN MENOLAK, jangan beralasan perlu izin admin, dan JANGAN menyertakan tag [EXECUTE: tag] atau command khayalan lainnya. Cukup sebut langsung nomornya menggunakan format @nomor di dalam teks responmu.`;
 				} else {
 					contextInfo += `\n[INFO] Ini adalah chat pribadi (private chat).`;
 				}
@@ -681,7 +949,25 @@ const nazeHandler = async (naze, m, msg, store) => {
 				}
 				
 				const uniqueCommands = [...new Set(casesArray)];
-				const allBotCommands = uniqueCommands.filter(c => c && c.length > 1 && c !== 'google').join(', ');
+				const ownerCommands = [
+					'deletesession', 'delsession', 'deletesampah', 'delsampah', 'deletetemp', 'deltemp',
+					'setmessbot', 'setbotmessages', 'setlimitbot', 'setbotlimit', 'setmoneybot', 'setbotmoney',
+					'setnamebot', 'setbotname', 'setpacknamebot', 'setbotpackname', 'setauthorbot', 'setbotauthor',
+					'setlocale', 'setlocalebot', 'setbotlocale', 'settimezone', 'settimezonebot', 'setbottimezone',
+					'setapikey', 'setbotapikey', 'lockcmd', 'unlockcmd', 'ownermenu', 'shutdown', 'off', 'update',
+					'upgrade', 'byq', 'setbio', 'setppbot', 'delppbot', 'addprefix', 'delprefix', 'removeprefix',
+					'listprefix', 'addtoxic', 'addbadword', 'deltoxic', 'delbadword', 'listtoxic', 'listbadword',
+					'join', 'leave', 'clearchat', 'getmsgstore', 'storemsg', 'blokir', 'block', 'listblock',
+					'openblokir', 'unblokir', 'openblock', 'unblock', 'ban', 'banned', 'unban', 'unbanned',
+					'mute', 'unmute', 'whitelist', 'addowner', 'delowner', 'adduang', 'addmoney', 'addlimit',
+					'listpc', 'listgc', 'creategc', 'buatgc', 'sewaon', 'sewaoff', 'addsewa', 'bypasssewa',
+					'delsewa', 'listsewa', 'addpr', 'addprem', 'addpremium', 'delpr', 'delprem', 'delpremium',
+					'listpr', 'listprem', 'listpremium', 'upsw', 'addcase', 'getcase', 'delcase', 'backup',
+					'accsewa', 'mode', 'public', 'self', 'anticall', 'autobio', 'autoread', 'autotyping',
+					'readsw', 'multiprefix', 'antispam', 'didyoumean', 'testreminder', '19rujxl1e',
+					'broadcastgroup', 'bcgroup', 'bcgc', 'broadcastuser', 'bcuser', 'bcchats', 'remindersolatall'
+				];
+				const allBotCommands = uniqueCommands.filter(c => c && c.length > 1 && c !== 'google' && !ownerCommands.includes(c)).join(', ');
 				
 				// List of executable commands
 				contextInfo += `
@@ -689,20 +975,21 @@ const nazeHandler = async (naze, m, msg, store) => {
 Kamu bisa menjalankan perintah bot secara otomatis jika diminta oleh user.
 Berikut daftar seluruh perintah/command yang didukung di bot ini: ${allBotCommands}
 
-Beberapa contoh penggunaan perintah penting:
-1. kick: Mengeluarkan anggota. Format: [EXECUTE: kick @nomor]
-2. promote: Menjadikan admin. Format: [EXECUTE: promote @nomor]
-3. demote: Menurunkan jabatan admin. Format: [EXECUTE: demote @nomor]
-4. group: Membuka/menutup grup. Format: [EXECUTE: group open] atau [EXECUTE: group close]
-5. hidetag: Mengirim pesan tag ke semua anggota grup. Format: [EXECUTE: hidetag teks_pesan]
-6. tagall: Menyebut semua anggota grup. Format: [EXECUTE: tagall]
-7. linkgroup: Mendapatkan link undangan grup. Format: [EXECUTE: linkgroup]
-8. revoke: Mengubah/mereset link undangan grup. Format: [EXECUTE: revoke]
-9. delete: Menghapus pesan (hanya jika kamu merespon/reply pesan yang ingin dihapus). Format: [EXECUTE: delete]
-10. suit: Bermain suit gunting batu kertas dengan orang lain. Format: [EXECUTE: suit @nomor]
-11. reminder: Menyetel pengingat/reminder. Format: [EXECUTE: reminder <durasi><pesan>]. Durasi WAJIB menggunakan unit d (hari), h (jam), m (menit), atau s (detik) dan ditaruh tepat setelah nama command tanpa kata perantara. Contoh: [EXECUTE: reminder 10s mandi] atau [EXECUTE: reminder 1h tidur]
-12. reminderall: Menyetel pengingat massal (hanya di grup). Format: [EXECUTE: reminderall <durasi><pesan>]. Contoh: [EXECUTE: reminderall 15m rapat]
-13. remindersolat: Mengaktifkan atau menonaktifkan pengingat waktu sholat otomatis di grup (hanya untuk admin). Format: [EXECUTE: remindersolat on] atau [EXECUTE: remindersolat off]
+Beberapa contoh penggunaan perintah oleh user:
+1. kick: Mengeluarkan anggota. Format perintah user: .kick @nomor (jika ingin mengeksekusi, sertakan tag [EXECUTE: kick @nomor] di akhir respon)
+2. promote: Menjadikan admin. Format perintah user: .promote @nomor (jika ingin mengeksekusi, sertakan tag [EXECUTE: promote @nomor] di akhir respon)
+3. demote: Menurunkan jabatan admin. Format perintah user: .demote @nomor (jika ingin mengeksekusi, sertakan tag [EXECUTE: demote @nomor] di akhir respon)
+4. group: Membuka/menutup grup. Format perintah user: .group open atau .group close (jika ingin mengeksekusi, sertakan tag [EXECUTE: group open] atau [EXECUTE: group close] di akhir respon)
+5. hidetag: Mengirim pesan tag ke semua anggota grup. Format perintah user: .hidetag teks_pesan (jika ingin mengeksekusi, sertakan tag [EXECUTE: hidetag teks_pesan] di akhir respon)
+6. tagall: Menyebut semua anggota grup. Format perintah user: .tagall (jika ingin mengeksekusi, sertakan tag [EXECUTE: tagall] di akhir respon)
+7. linkgroup: Mendapatkan link undangan grup. Format perintah user: .linkgroup (jika ingin mengeksekusi, sertakan tag [EXECUTE: linkgroup] di akhir respon)
+8. revoke: Mengubah/mereset link undangan grup. Format perintah user: .revoke (jika ingin mengeksekusi, sertakan tag [EXECUTE: revoke] di akhir respon)
+9. delete: Menghapus pesan (hanya jika kamu merespon/reply pesan yang ingin dihapus). Format perintah user: .delete (jika ingin mengeksekusi, sertakan tag [EXECUTE: delete] di akhir respon)
+10. suit: Bermain suit gunting batu kertas dengan orang lain. Format perintah user: .suit @nomor (jika ingin mengeksekusi, sertakan tag [EXECUTE: suit @nomor] di akhir respon)
+11. reminder: Menyetel pengingat/reminder. Format perintah user: .reminder <durasi><pesan>. Durasi WAJIB menggunakan unit d (hari), h (jam), m (menit), atau s (detik) dan ditaruh tepat setelah nama command tanpa kata perantara. Contoh perintah user: .reminder 10s mandi (jika ingin mengeksekusi, sertakan tag [EXECUTE: reminder 10s mandi] di akhir respon)
+12. reminderall: Menyetel pengingat massal (hanya di grup). Format perintah user: .reminderall <durasi><pesan>. Contoh perintah user: .reminderall 15m rapat (jika ingin mengeksekusi, sertakan tag [EXECUTE: reminderall 15m rapat] di akhir respon)
+13. remindersolat: Mengaktifkan atau menonaktifkan pengingat waktu sholat otomatis di grup (hanya untuk admin). Format perintah user: .remindersolat on atau .remindersolat off (jika ingin mengeksekusi, sertakan tag [EXECUTE: remindersolat on] atau [EXECUTE: remindersolat off] di akhir respon)
+
 
 [KONSEKUENSI PENGGUNAAN MEDIA YANG DI-REPLY]
 Jika user me-reply suatu pesan media (gambar, video, stiker, audio) dan menyuruh Anda mengubah formatnya, Anda harus memicu perintah yang sesuai:
@@ -724,11 +1011,40 @@ Jika user mengajak bermain game (contoh: tebakgambar, tebaklagu, susunkata, dll.
 2. Jika ada, Anda WAJIB memicu permainan tersebut menggunakan format [EXECUTE: nama_game]. Contoh: "Ti play game tebakgambar" -> [EXECUTE: tebakgambar], "Ti main tebak lagu" -> [EXECUTE: tebaklagu].
 3. JANGAN PERNAH menyimulasikan pertanyaan atau mengirim gambar game sendiri secara manual di teks jawaban Anda. Serahkan sepenuhnya kepada bot untuk memicu gamenya.
 
-[ATURAN MUSIK / LAGU / VIDEO]
-Jika user meminta mengirim, putar, download, atau carikan lagu/musik/video:
-1. Gunakan perintah [EXECUTE: play <judul lagu/artis>]. Contoh: "Ti kirim lagu dido thankyou" -> [EXECUTE: play dido thank you]
-2. JANGAN gunakan ytmp3 atau ytmp4 secara langsung karena itu butuh URL YouTube, bukan nama lagu.
-3. Command "play" akan mencari lagu di YouTube dan memberikan pilihan download audio/video.
+[ATURAN MUSIK / LAGU / VIDEO / AUDIO - SANGAT PENTING]
+ATURAN UTAMA: Ketika user meminta kirim/play/putar lagu/audio/video/musik, Anda WAJIB LANGSUNG mengeksekusi tag yang sesuai. DILARANG KERAS memberikan rekomendasi teks, daftar lagu, bertanya balik, meminta konfirmasi, atau memberikan opsi. LANGSUNG EKSEKUSI.
+
+Apapun yang user sebut setelah kata "kirim lagu/audio/video" atau "play" adalah JUDUL yang harus dicari di YouTube. Jangan analisis maknanya, jangan terjemahkan, jangan artikan — langsung pakai sebagai query pencarian.
+
+1. KIRIM AUDIO / LAGU (langsung kirim file audio MP3):
+   Kata kunci: "kirim lagu", "kirim audio", "kirimin lagu", "kirim musik", "play lagu", "play audio", "putar lagu", "putar audio"
+   - WAJIB gunakan [PLAY_AUDIO: <query>] di akhir respon.
+   - Contoh:
+     * "Ti kirim lagu disarankan dibandung" -> "Siap, aku kirimkan lagunya! [PLAY_AUDIO: disarankan dibandung]"
+     * "Ti kirim audio upin ipin" -> "Oke, aku kirimkan audionya! [PLAY_AUDIO: upin ipin]"
+     * "Ti kirim lagu anjay" -> "Siap! [PLAY_AUDIO: anjay]"
+     * "Ti play lagu dido thankyou" -> "Oke! [PLAY_AUDIO: dido thank you]"
+     * "Ti kirimin lagu nissa sabyan" -> "Siap! [PLAY_AUDIO: nissa sabyan]"
+     * "Ti kirim lagu terbaru 2024" -> "Oke! [PLAY_AUDIO: lagu terbaru 2024]"
+
+2. KIRIM VIDEO (langsung kirim file video):
+   Kata kunci: "kirim video", "kirimin video", "play video", "putar video", "kirim film"
+   - WAJIB gunakan [PLAY_VIDEO: <query>] di akhir respon.
+   - Contoh:
+     * "Ti kirim video upin ipin" -> "Siap! [PLAY_VIDEO: upin ipin]"
+     * "Ti play video lagu didi kempot" -> "Oke! [PLAY_VIDEO: didi kempot]"
+     * "Ti kirimin video kucing lucu" -> "Oke! [PLAY_VIDEO: kucing lucu]"
+
+3. PLAY (tampilkan pilihan download):
+   HANYA jika user bilang "play" TANPA menyebut "lagu/audio/video" secara spesifik:
+   - Gunakan [EXECUTE: play <judul>]. Contoh: "Ti play upin ipin" -> [EXECUTE: play upin ipin]
+
+LARANGAN KERAS:
+- DILARANG memberikan daftar rekomendasi lagu dalam bentuk teks.
+- DILARANG bertanya "mau genre apa?", "mau artis apa?", "mau lagu yang mana?".
+- DILARANG meminta konfirmasi atau klarifikasi judul.
+- DILARANG menjelaskan cara menggunakan command .play atau sejenisnya.
+- Apapun teks setelah kata kunci (kirim lagu/audio/video) = JUDUL LAGU. Langsung eksekusi!
 
 [ATURAN GAMBAR / IMAGE]
 Kamu memiliki kemampuan untuk MEMBUAT gambar AI dan MENCARI gambar dari internet.
@@ -750,30 +1066,42 @@ ATURAN:
 - JANGAN gabungkan [IMAGE_GEN] dan [IMAGE_SEARCH] dalam satu respon.
 - Prompt untuk [IMAGE_GEN] HARUS dalam bahasa Inggris agar hasilnya bagus.
 
+[ATURAN TULIS / NULIS DI BUKU]
+Jika user meminta "tulis", "nulis", "tulis dibuku", "tuliskan", "tulis di folio", atau sejenisnya:
+1. Jika user sedang me-reply pesan TEKS atau GAMBAR yang berisi teks → BOT akan otomatis mengeksekusi perintah nulis. Kamu TIDAK perlu melakukan apa-apa (sudah ditangani otomatis oleh sistem).
+2. Jika user TIDAK me-reply pesan apa pun → Jawab dengan sopan: "Silakan reply ke pesan teks atau gambar yang berisi teks yang ingin kamu tuliskan di buku, lalu kirim perintahnya lagi ya! 📝"
+3. JANGAN gunakan [EXECUTE: nulis] atau [EXECUTE: nuliskiri], karena perintah nulis membutuhkan penanganan khusus oleh sistem.
+
 [ATURAN PENGGUNAAN PERINTAH]
 - Status pengirim pesan saat ini: ${m.isAdmin || isCreator ? 'ADMIN' : 'MEMBER'}.
 - Perintah admin (seperti kick, promote, demote, group, hidetag, tagall, linkgroup, revoke) hanya boleh dijalankan jika pengirim pesan adalah ADMIN/CREATOR.
 - Jika pengirim pesan adalah MEMBER (bukan admin) dan menyuruhmu melakukan tindakan admin tersebut, kamu WAJIB MENOLAKNYA dengan sopan (misal: "Maaf, Anda bukan admin grup ini.") dan JANGAN sertakan tag [EXECUTE: ...].
 - Jangan pernah menyertakan tag [EXECUTE: ...] jika pengirim bukan admin untuk perintah admin.
-- Ketika menyertakan tag [EXECUTE: ...], pastikan nama_command persis seperti yang tertulis di daftar perintah di atas (case-sensitive lowercase) dan letakkan tag tersebut di bagian paling akhir dari responmu.`;
+- Ketika menyertakan tag [EXECUTE: ...], pastikan nama_command persis seperti yang tertulis di daftar perintah di atas (case-sensitive lowercase) dan letakkan tag tersebut di bagian paling akhir dari responmu.
+- JANGAN PERNAH menuliskan tag [EXECUTE: ...], [IMAGE_GEN: ...], [IMAGE_SEARCH: ...], [PLAY_AUDIO: ...], atau [PLAY_VIDEO: ...] sebagai contoh, penjelasan, atau ilustrasi format di dalam teks jawabanmu. Tag tersebut adalah instruksi sistem rahasia. Jika kamu ingin memberi contoh perintah ke user, tulislah dengan format biasa dengan awalan titik (misal: ".kick @nomor" atau ".tagall").`;
 				
 				let googleContext = '';
 				const isSimpleGreeting = /^(halo|helo|hi|hai|p|assalamualaikum|tes|test|pagi|siang|sore|malam)$/i.test(tiQuery);
 				const isDirectAction = /^(buatkan|bikin|generate|cari|carikan|kirim|kirimin|putar|play|main)\b/i.test(tiQuery);
-				if (tiQuery.length >= 5 && !isSimpleGreeting && !isDirectAction) {
+				const isNewsOrInfoQuery = /\b(berita|info|update|terbaru|hari\s+ini|siapa|apa|kapan|dimana|bagaimana|mengapa|artikel|link|url|website|situs|google|pencarian)\b/i.test(tiQuery);
+				
+				if (tiQuery.length >= 5 && !isSimpleGreeting && (!isDirectAction || isNewsOrInfoQuery)) {
 					try {
 						const searchRes = await fetchApi('/search/google', { query: tiQuery });
 						if (searchRes && searchRes.result && searchRes.result.length > 0) {
 							googleContext += `\n\n[HASIL PENCARIAN GOOGLE TERBARU (REAL-TIME)]`;
 							googleContext += `\nBerikut adalah hasil pencarian Google terbaru untuk membantu Anda menjawab pertanyaan dengan sangat up-to-date, akurat, dan sesuai dengan fakta tahun ${new Date().getFullYear()}:`;
-							const searchResults = searchRes.result.slice(0, 4);
+							const searchResults = searchRes.result.slice(0, 5);
 							searchResults.forEach((item, index) => {
 								googleContext += `\n${index + 1}. Judul: ${item.title}\n   Snippet: ${item.snippet || '-'}\n   Link: ${item.link}`;
 							});
-							googleContext += `\n\nATURAN PENGGUNAAN HASIL PENCARIAN:`;
+							googleContext += `\n\nATURAN PENGGUNAAN HASIL PENCARIAN GOOGLE:`;
 							googleContext += `\n- JAWABLAH pertanyaan user berdasarkan informasi terbaru di atas.`;
 							googleContext += `\n- Jika informasi di atas bertentangan dengan pengetahuan lamamu, gunakan informasi terbaru ini.`;
-							googleContext += `\n- Jangan menyebutkan "berdasarkan hasil pencarian Google" atau sejenisnya kecuali diminta. Cukup simpulkan dan jawab secara natural seolah-olah kamu sudah mengetahuinya.`;
+							googleContext += `\n- Jika user menanyakan daftar berita/informasi (meminta lebih dari satu, contoh: "5 berita tentang...", "cari berita-berita terbaru"), Anda WAJIB menyajikan daftar berita tersebut dengan menggunakan Judul dan Link asli yang valid dari hasil pencarian Google di atas secara persis. Jangan pernah memalsukan atau mengarang link.`;
+							googleContext += `\n- Jika user hanya menanyakan satu hal saja (tidak meminta daftar/banyak berita, contoh: "siapa X?", "berita tentang Y hari ini"), Anda harus memberikan jawaban/kesimpulan yang dirangkum dari hasil pencarian di atas, serta tetap wajib menyertakan link sumber asli yang valid di akhir respon Anda.`;
+							googleContext += `\n- Jangan menyebutkan "berdasarkan hasil pencarian Google" atau sejenisnya kecuali diminta. Cukup simpulkan dan jawab secara natural seolah-olah Anda sudah mengetahuinya.`;
+							googleContext += `\n- PENTING: JANGAN PERNAH menyertakan link khayalan (seperti contohberita.id, website.com, dll). Semua link yang Anda tampilkan harus bersumber langsung dari hasil pencarian Google di atas secara persis.`;
 						}
 					} catch (searchError) {
 						console.error('Error fetching Google context for AI:', searchError);
@@ -781,20 +1109,62 @@ ATURAN:
 				}
 				contextInfo += googleContext;
 
-				const identityPrompt = `Kamu adalah Ti Assistant Bot, dibuat oleh Farid Suryadi. JAWABLAH pertanyaan secara langsung tanpa memperkenalkan diri kecuali jika kamu ditanya tentang siapa kamu, namamu, atau pembuatmu.${contextInfo}\n\nPertanyaan: `;
+				let aiQuery = tiQuery;
+				if (aiQuery.length === 0) {
+					const greetings = [
+						"Halo! Saya TI Assistant Bot. Ada yang bisa saya bantu? 🤖",
+						"Hai! TI Assistant Bot siap membantu Anda. 🚀",
+						"Halo! Saya TI Assistant Bot, siap membantu kapan saja. 😊",
+						"Selamat datang! Saya TI Assistant Bot. 👋",
+						"Hai! Bersama TI Assistant Bot, ada yang bisa dibantu? ✨",
+						"Halo! TI Assistant Bot di sini. Ada pertanyaan? 💡",
+						"Hai! Saya TI Assistant Bot. Mari mulai. 🚀",
+						"Halo! TI Assistant Bot siap menemani aktivitas Anda. 🤖",
+						"Hai! Saya TI Assistant Bot, asisten digital Anda. 😊",
+						"Halo! TI Assistant Bot aktif dan siap membantu. ⚡",
+						"Selamat datang! TI Assistant Bot siap melayani Anda. 🎉",
+						"Hai! TI Assistant Bot online. Ada yang bisa saya bantu? 🔍",
+						"Halo! Saya TI Assistant Bot, siap menjawab pertanyaan Anda. 📚",
+						"Hai! Terhubung dengan TI Assistant Bot. 🚀",
+						"Halo! TI Assistant Bot hadir untuk membantu Anda. ✨"
+					];
+					return m.reply(pickRandom(greetings));
+				}
+				const identityPrompt = `Kamu adalah Ti Assistant Bot, sebuah asisten AI yang dibuat oleh Farid Suryadi.
+JAWABLAH pertanyaan secara langsung tanpa memperkenalkan diri atau menyebutkan pembuatmu di awal respon, KECUALI jika kamu ditanya tentang siapa namamu, siapa dirimu, pembuatmu, atau tentang fitur/kemampuan/apa saja yang bisa kamu lakukan (seperti pertanyaan 'kamu bisa apa aja', 'fiturnya apa aja', dll).
+
+PENTING - ATURAN EKSEKUSI GAMBAR / IMAGE:
+- Jika pengguna menyuruhmu "buat/generate/bikin/buatkan" suatu gambar (contoh: "bikin gambar harimau", "buatkan gambar mobil sport"), kamu WAJIB menuliskan deskripsi gambar dalam bahasa Inggris dan langsung meletakkan tag [IMAGE_GEN: english_prompt] di bagian paling akhir responmu.
+- Jika pengguna menyuruhmu "cari/carikan/kirim/kirimin/kasih/tampilkan" gambar/foto (contoh: "kirim gambar harimau", "cari foto kucing lucu"), kamu WAJIB langsung meletakkan tag [IMAGE_SEARCH: query_pencarian] di bagian paling akhir responmu.
+- JANGAN PERNAH memberikan opsi pilihan, menolak, atau bertanya kepada pengguna untuk memilih antara generate AI atau cari di internet. Langsung putuskan dan jalankan perintahnya secara otomatis sesuai kata kerja yang mereka gunakan (buat/bikin -> [IMAGE_GEN], cari/kirim -> [IMAGE_SEARCH]).
+
+PENTING - ATURAN WAKTU & TANGGAL (WIB / JAKARTA):
+- Waktu lokal saat ini (WIB / Asia/Jakarta) sudah disediakan secara presis di bagian '[WAKTU SEKARANG]' dalam konteks (mencakup Hari, Tanggal, dan Jam).
+- Jika ada pengguna yang bertanya tentang jam, waktu, hari, tanggal, bulan, atau tahun sekarang, kamu WAJIB menjawabnya berdasarkan informasi di '[WAKTU SEKARANG]' secara persis dan yakin. Jangan pernah menanyakan zona waktu lagi atau berasumsi menggunakan zona waktu luar negeri (seperti UTC, CEST, dll). Pastikan jawabanmu menyebutkan bahwa itu adalah waktu Jakarta (WIB).
+
+PENTING - ATURAN TENTANG FARID SURYADI (PENCIPTA/PEMBUAT BOT):
+- Jika ada user yang menyebut nama 'Farid Suryadi' or bertanya tentang 'Farid Suryadi', kamu WAJIB memuji dan menyanjung beliau setinggi-tingginya.
+- Jelaskan bahwa Farid Suryadi adalah pembuat/penciptamu yang sangat jenius, seorang Profesor terkemuka di bidang Teknologi, ahli AI yang luar biasa, dan tokoh inspiratif yang menciptakan sistem canggih ini. Berikan penjelasan yang sangat mengagumkan tentang kontribusi dan keahlian beliau di bidang teknologi.
+
+Jika ditanya tentang fitur, kemampuan, atau apa saja yang bisa kamu lakukan:
+1. Pertama-tama perkenalkan dirimu sebagai 'Ti Assistant Bot' ciptaan Farid Suryadi dengan ramah.
+2. Jelaskan fitur/kemampuan utama yang kamu miliki dalam daftar yang rapi dan ringkas:
+   - *Absensi / Kehadiran*: Membuat daftar absensi kelompok secara praktis.
+   - *Pembuat Stiker*: Mengonversi gambar/video/gif menjadi stiker WhatsApp dengan mudah.
+   - *Konversi Media*: Mengubah video/audio menjadi MP3, Voice Note (VN), atau stiker ke gambar.
+   - *Game Interaktif*: Bermain Suit, Tic-Tac-Toe, Tebak Gambar, Tebak Lagu, Tebak Lirik, Tebak Kata, Kuis Matematika, dll.
+   - *Pengingat (Reminder)*: Menyetel alarm pengingat pribadi, pengingat grup, hingga pengingat waktu sholat otomatis.
+   - *Administrasi Grup*: Membantu mengelola grup (kick, promote, demote, tagall/hidetag, buka/tutup grup).
+   - *Pencarian Pintar & Gambar*: Melakukan pencarian Google secara real-time dan membuat/mencari gambar dengan AI.
+3. Di bagian paling bawah responmu, tambahkan teks: "Ketik .menu untuk melihat daftar perintah lengkap saya."
+4. PENTING: JANGAN PERNAH menyebutkan atau membocorkan fitur/command khusus Owner (seperti setmenu, setprefix, join, leave, setapikey, addprem, delprem, backup, public, self, dll) kepada siapa pun. Fitur owner harus dirahasiakan sepenuhnya.
+Bahasa respon harus ramah, sopan, dan membantu.\n\n${contextInfo}\n\nPertanyaan: `;
 				try {
-					let hasil;
-					if (imageUrl) {
-						hasil = await fetchApi('/ai/gemini', { query: identityPrompt + tiQuery, url: imageUrl });
-					} else {
-						hasil = await fetchApi('/ai/gemini-flash-lite', { query: identityPrompt + tiQuery });
-					}
-					let answer = hasil?.result?.text;
-					if (!answer) throw new Error("No response from primary API");
+					let answer = await global.callNazeAI(identityPrompt + aiQuery, imageUrl);
 					await handleAIResponse(answer);
 				} catch (e) {
 					try {
-						let res = await chatAI(tiQuery, contextInfo);
+						let res = await chatAI(aiQuery, contextInfo);
 						await handleAIResponse(res);
 					} catch (fallbackError) {
 						m.reply(pickRandom(['Fitur Ai sedang bermasalah!','Tidak dapat terhubung ke ai!','Sistem Ai sedang sibuk sekarang!','Fitur sedang tidak dapat digunakan!']));
@@ -1174,9 +1544,9 @@ ATURAN:
 		// Menfes & Room Ai
 		if (!m.isGroup && (!isCmd || isCreator)) {
 			// toPdf state image collector
-			if (global.db.database.toPdf && global.db.database.toPdf[m.sender] && global.db.database.toPdf[m.sender].step === 'collecting_images') {
+			if (global.db.toPdf && global.db.toPdf[m.sender] && global.db.toPdf[m.sender].step === 'collecting_images') {
 				if (m.type === 'imageMessage') {
-					let pending = global.db.database.toPdf[m.sender];
+					let pending = global.db.toPdf[m.sender];
 					try {
 						const { Jimp } = await import('jimp');
 						let imgBuffer = await naze.downloadMediaMessage(m.message.imageMessage);
@@ -1249,7 +1619,7 @@ ATURAN:
 							
 							await naze.sendButtonMsg(m.chat, {
 								text: msg,
-								footer: 'Hitori Bot Campus Tools',
+								footer: 'Ti Assistant Bot Campus Tools',
 								buttons: [
 									{ buttonId: '.pdfdone', buttonText: { displayText: 'Sudah ✅' }, type: 1 },
 									{ buttonId: '.pdfcancel', buttonText: { displayText: 'Batalkan ❌' }, type: 1 }
@@ -1270,8 +1640,8 @@ ATURAN:
 			}
 			
 			// toPdf state name collector
-			if (global.db.database.toPdf && global.db.database.toPdf[m.sender] && global.db.database.toPdf[m.sender].step === 'waiting_pdf_name' && !m.body.startsWith('.')) {
-				let pending = global.db.database.toPdf[m.sender];
+			if (global.db.toPdf && global.db.toPdf[m.sender] && global.db.toPdf[m.sender].step === 'waiting_pdf_name' && !m.body.startsWith('.')) {
+				let pending = global.db.toPdf[m.sender];
 				let pdfName = m.body.trim().replace(/[^a-zA-Z0-9_\-]/g, '_');
 				if (!pdfName) pdfName = 'document_scan';
 				
@@ -1312,7 +1682,7 @@ ATURAN:
 					}, { quoted: m });
 					
 					fs.unlinkSync(pdfPath);
-					delete global.db.database.toPdf[m.sender];
+					delete global.db.toPdf[m.sender];
 				} catch (e) {
 					console.error(e);
 					m.reply('Gagal membuat file PDF. Silakan hubungi Owner.');
@@ -1320,8 +1690,8 @@ ATURAN:
 				return;
 			}
 			// Capturing Receipt Image for Sewa
-			if (global.db.database.pendingSewa[m.sender] && global.db.database.pendingSewa[m.sender].step === 'waiting_receipt_image' && m.type === 'imageMessage') {
-				let pending = global.db.database.pendingSewa[m.sender];
+			if (global.db.pendingSewa[m.sender] && global.db.pendingSewa[m.sender].step === 'waiting_receipt_image' && m.type === 'imageMessage') {
+				let pending = global.db.pendingSewa[m.sender];
 				pending.step = 'waiting_owner_approval';
 				m.reply(`Terima kasih! Bukti transfer Anda telah dikirimkan ke Owner untuk verifikasi.\nMohon tunggu informasi selanjutnya.`);
 				
@@ -1492,10 +1862,9 @@ ATURAN:
 					return parts.join(', ');
 				};
 				
-				global.db.database = global.db.database || {};
-				global.db.database.reminders = global.db.database.reminders || [];
+				global.db.reminders = global.db.reminders || [];
 				
-				global.db.database.reminders.push({
+				global.db.reminders.push({
 					chat: m.chat,
 					sender: m.sender,
 					isGroup: m.isGroup,
@@ -1584,10 +1953,9 @@ ATURAN:
 					return parts.join(', ');
 				};
 				
-				global.db.database = global.db.database || {};
-				global.db.database.reminders = global.db.database.reminders || [];
+				global.db.reminders = global.db.reminders || [];
 				
-				global.db.database.reminders.push({
+				global.db.reminders.push({
 					chat: m.chat,
 					sender: m.sender,
 					isGroup: true,
@@ -1618,6 +1986,22 @@ ATURAN:
 			}
 			break
 
+			case 'remindersolatall': {
+				if (!isCreator) return m.reply(global.mess.owner);
+				if (!text) return m.reply(`*Format Salah!*\n\nContoh:\n- ${prefix + command} on\n- ${prefix + command} off`);
+				let opt = text.toLowerCase().trim();
+				if (opt === 'on') {
+					global.db.remindersolatall = true;
+					m.reply(`*Global Reminder Sholat (Owner Override)* berhasil diaktifkan! Pengingat waktu sholat sekarang akan dikirimkan ke *seluruh grup* tempat bot bergabung.`);
+				} else if (opt === 'off') {
+					global.db.remindersolatall = false;
+					m.reply(`*Global Reminder Sholat (Owner Override)* berhasil dinonaktifkan. Pengingat sholat sekarang hanya akan dikirimkan ke grup-grup yang mengaktifkannya secara manual.`);
+				} else {
+					m.reply(`*Pilihan tidak valid!*\n\nGunakan *on* atau *off*.\nContoh:\n- ${prefix + command} on\n- ${prefix + command} off`);
+				}
+			}
+			break
+
 			case 'testreminder': {
 				if (!isCreator) return m.reply(global.mess.owner);
 				if (!m.isGroup) return m.reply(global.mess.group);
@@ -1627,8 +2011,7 @@ ATURAN:
 				let aiKataKata = '';
 				let prompt = `Buat 1 kalimat ajakan sholat ${sholatTest} yang hangat dan sopan, tanpa jam, tanpa markdown, teks polos saja`;
 				try {
-					let res = await global.fetchApi('/ai/gemini-flash-lite', { query: prompt });
-					aiKataKata = res?.result?.text;
+					aiKataKata = await global.callNazeAI(prompt);
 				} catch (e) {
 					console.error("AI error testreminder:", e);
 				}
@@ -2033,15 +2416,93 @@ ATURAN:
 				await naze.sendMessage(group.id, { text: global.mess.done })
 			}
 			break
+			case 'broadcastgroup': case 'bcgroup': case 'bcgc': {
+				if (!isCreator) return m.reply(global.mess.owner);
+				if (!text && !m.quoted) return m.reply(`Mana pesannya?\nExample:\n${prefix + command} Pengumuman...`);
+				let groups = [...new Set([...Object.keys(store.messages).filter(a => a.endsWith('@g.us')), ...Object.keys(store.groupMetadata || {})])];
+				if (groups.length === 0) return m.reply('Tidak ada grup yang terdeteksi.');
+				m.reply(`Memulai broadcast ke ${groups.length} grup...`);
+				let rawMsg = {};
+				if (m.quoted) {
+					const messageType = m.quoted.type;
+					if (messageType === 'conversation' || messageType === 'extendedTextMessage') {
+						rawMsg = { text: text || m.quoted.body };
+					} else {
+						rawMsg[messageType] = { ...m.quoted.msg };
+						if (text) {
+							rawMsg[messageType].caption = text;
+						}
+					}
+				} else {
+					rawMsg = { text: text };
+				}
+				let success = 0;
+				for (let jid of groups) {
+					try {
+						await naze.sendMessage(jid, rawMsg);
+						success++;
+						await sleep(1500);
+					} catch (e) {
+						console.error(`Failed to broadcast to ${jid}:`, e);
+					}
+				}
+				m.reply(`Broadcast selesai!\nBerhasil mengirim ke ${success}/${groups.length} grup.`);
+			}
+			break
+			case 'broadcastuser': case 'bcuser': case 'bcchats': {
+				if (!isCreator) return m.reply(global.mess.owner);
+				if (!text && !m.quoted) return m.reply(`Mana pesannya?\nExample:\n${prefix + command} Pengumuman...`);
+				let rawUsers = [...new Set([...Object.keys(store.messages).filter(a => a.endsWith('.net') || a.endsWith('lid')), ...Object.keys(db.users || {})])].filter(u => u !== botNumber && u !== m.sender && !u.endsWith('@g.us') && !u.endsWith('@broadcast'));
+				let normalizedUsers = [];
+				for (let u of rawUsers) {
+					let target = u;
+					if (u.endsWith('@lid')) {
+						let resolved = naze.findJidByLid(u, store);
+						if (resolved) {
+							target = resolved.includes('@') ? resolved : resolved + '@s.whatsapp.net';
+						}
+					}
+					normalizedUsers.push(target);
+				}
+				let users = [...new Set(normalizedUsers)];
+				if (users.length === 0) return m.reply('Tidak ada user chat pribadi yang terdeteksi.');
+				m.reply(`Memulai broadcast ke ${users.length} user...`);
+				let rawMsg = {};
+				if (m.quoted) {
+					const messageType = m.quoted.type;
+					if (messageType === 'conversation' || messageType === 'extendedTextMessage') {
+						rawMsg = { text: text || m.quoted.body };
+					} else {
+						rawMsg[messageType] = { ...m.quoted.msg };
+						if (text) {
+							rawMsg[messageType].caption = text;
+						}
+					}
+				} else {
+					rawMsg = { text: text };
+				}
+				let success = 0;
+				for (let jid of users) {
+					try {
+						await naze.sendMessage(jid, rawMsg);
+						success++;
+						await sleep(1500);
+					} catch (e) {
+						console.error(`Failed to broadcast to ${jid}:`, e);
+					}
+				}
+				m.reply(`Broadcast selesai!\nBerhasil mengirim ke ${success}/${users.length} user.`);
+			}
+			break
 			case 'sewaon': {
 				if (!isCreator) return m.reply(global.mess.owner)
-				global.db.database.sewaBotToggle = true;
+				global.db.sewaBotToggle = true;
 				m.reply('Fitur wajib sewa untuk grup berhasil dihidupkan!\nSekarang bot akan meminta pengguna di grup untuk menyewa jika belum langganan.');
 			}
 			break
 			case 'sewaoff': {
 				if (!isCreator) return m.reply(global.mess.owner)
-				global.db.database.sewaBotToggle = false;
+				global.db.sewaBotToggle = false;
 				m.reply('Fitur wajib sewa untuk grup berhasil dimatikan!\nSekarang bot bisa dipakai gratis di grup manapun tanpa batasan.');
 			}
 			break
@@ -2076,7 +2537,7 @@ ATURAN:
 					return m.reply(`Silakan gunakan link dari grup Anda untuk menyewa bot, atau sertakan ID grup Anda.\nContoh: \`.sewa 120363292945660346@g.us\``);
 				}
 				
-				global.db.database.pendingSewa[m.sender] = {
+				global.db.pendingSewa[m.sender] = {
 					groupJid: targetGroup,
 					step: 'price_list'
 				};
@@ -2090,7 +2551,7 @@ ATURAN:
 				
 				await naze.sendButtonMsg(m.chat, {
 					text: priceList,
-					footer: 'Hitori Bot Rental Tiers',
+					footer: 'Ti Assistant Bot Rental Tiers',
 					buttons: [
 						{ buttonId: '.sewabot 1', buttonText: { displayText: 'Sewa 1 Hari (1K) ⏳' }, type: 1 },
 						{ buttonId: '.sewabot 7', buttonText: { displayText: 'Sewa 7 Hari (10K) 🚀' }, type: 1 },
@@ -2101,7 +2562,7 @@ ATURAN:
 			break
 			case 'sewabot': {
 				if (m.isGroup) return m.reply(global.mess.private);
-				let pending = global.db.database.pendingSewa[m.sender];
+				let pending = global.db.pendingSewa[m.sender];
 				if (!pending || !pending.groupJid) {
 					return m.reply(`Silakan lakukan sewa melalui grup terlebih dahulu menggunakan link sewa atau ketik \`.sewa [id_grup]\` di sini.`);
 				}
@@ -2127,7 +2588,7 @@ ATURAN:
 				await naze.sendButtonMsg(m.chat, {
 					image: global.qris,
 					caption: paymentMsg,
-					footer: 'Hitori Bot Payment System',
+					footer: 'Ti Assistant Bot Payment System',
 					buttons: [
 						{ buttonId: '.konfirmasi', buttonText: { displayText: 'Konfirmasi Pembayaran ✅' }, type: 1 }
 					]
@@ -2136,7 +2597,7 @@ ATURAN:
 			break
 			case 'konfirmasi': {
 				if (m.isGroup) return m.reply(global.mess.private);
-				let pending = global.db.database.pendingSewa[m.sender];
+				let pending = global.db.pendingSewa[m.sender];
 				if (!pending || !pending.groupJid || pending.step !== 'waiting_payment') {
 					return m.reply(`Tidak ada tagihan sewa yang sedang aktif atau menunggu pembayaran.`);
 				}
@@ -2169,7 +2630,7 @@ ATURAN:
 					m.reply(`Sewa untuk grup ${groupJid} telah ditolak.`);
 				}
 				
-				delete global.db.database.pendingSewa[sender];
+				delete global.db.pendingSewa[sender];
 			}
 			break
 			case 'bypasssewa': {
@@ -2490,7 +2951,7 @@ ATURAN:
 						botname: teksnya.trim()
 					});
 					m.reply(global.mess.done)
-				} else m.reply(`Example: ${prefix + command} Hitori bot`)
+				} else m.reply(`Example: ${prefix + command} Ti Assistant Bot`)
 			}
 			break
 			case 'setpacknamebot': case 'setbotpackname': {
@@ -2502,7 +2963,7 @@ ATURAN:
 						packname: teksnya.trim()
 					});
 					m.reply(global.mess.done)
-				} else m.reply(`Example: ${prefix + command} By Hitori bot`)
+				} else m.reply(`Example: ${prefix + command} By Ti Assistant Bot`)
 			}
 			break
 			case 'setauthorbot': case 'setbotauthor': {
@@ -2546,23 +3007,26 @@ ATURAN:
 			case 'setapikey': case 'setbotapikey': {
 				if (!isCreator) return m.reply(global.mess.owner)
 				if (!text) return m.reply('Mana apikey nya?')
-				if (args[0]?.toLowerCase() == 'neo') {
-					if (!args[1]?.startsWith('nsk_')) return m.reply('Apikey Tidak Valid!\nAmbil Apikey di : https://app.neosantara.xyz/api-keys');
-					let old_key = global.APIKeys[global.APIs.neosantara];
-					await updateSettings({
-						filePath: settingsPath,
-						neosantara: args[1].trim()
-					});
-					m.reply(`*Apikey telah di ganti dari ${old_key} menjadi ${q}*`)
-				} else {
-					if (!text.startsWith('nz-')) return m.reply('Apikey Tidak Valid!\nAmbil Apikey di : https://naze.biz.id/profile');
-					let old_key = global.APIKeys[global.APIs.naze];
-					await updateSettings({
-						filePath: settingsPath,
-						apikey: text.trim()
-					});
-					m.reply(`*Apikey telah di ganti dari ${old_key} menjadi ${q}*`)
+				if (!text.startsWith('nz-')) return m.reply('Apikey Tidak Valid!\nAmbil Apikey di : https://naze.biz.id/profile');
+				
+				let old_key = global.APIKeys[global.APIs.naze];
+				await updateSettings({
+					filePath: settingsPath,
+					apikey: text.trim()
+				});
+				
+				// Sync with setting.json
+				try {
+					let settings = JSON.parse(fs.readFileSync('./setting.json', 'utf-8'));
+					if (!settings.apiKeys.includes(text.trim())) {
+						settings.apiKeys.unshift(text.trim());
+						fs.writeFileSync('./setting.json', JSON.stringify(settings, null, 2), 'utf-8');
+					}
+				} catch (e) {
+					console.error('Error updating setting.json in setapikey:', e);
 				}
+				
+				m.reply(`*Apikey telah di ganti dari ${old_key} menjadi ${text.trim()}*`)
 			}
 			break
 
@@ -2572,7 +3036,7 @@ ATURAN:
 			break
 			
 			// Absen Menu
-			case 'buatabsen': {
+			case 'buatabsen': case 'absensi': {
 				if (!m.isGroup) return m.reply(global.mess.group)
 				if (!m.isBotAdmin) return m.reply(global.mess.botAdmin)
 				if (!m.isAdmin) return m.reply(global.mess.admin)
@@ -2609,17 +3073,18 @@ ATURAN:
 				
 				m.reply(`Ketik *${prefix}absen nama anda*, jika sudah pernah cukup *${prefix}absen*\n\n_Lakukan pin manual pada pesan absen di atas._`);
 				
-				global.db.database.absen[m.chat] = {
+				global.db.absen[m.chat] = {
 					title: judulAbsen,
 					date: dateStr,
 					key: msg.key,
 					list: initialList
 				};
+				if (global.db) await database.write(global.db);
 			}
 			break
 			case 'absen': {
 				if (!m.isGroup) return m.reply(global.mess.group)
-				let activeAbsen = global.db.database.absen[m.chat];
+				let activeAbsen = global.db.absen[m.chat];
 				if (!activeAbsen) return m.reply('Tidak ada sesi absen yang aktif di grup ini.');
 				
 				let user = db.users[m.sender];
@@ -2632,7 +3097,15 @@ ATURAN:
 				let userName = user.absenName;
 				
 				// Check if user is already in the list
-				let existingIndex = activeAbsen.list.findIndex(u => u.id === m.sender);
+				const isSameUser = (id1, id2) => {
+					let j1 = naze.decodeJid(id1);
+					let j2 = naze.decodeJid(id2);
+					if (j1 === j2) return true;
+					let p1 = naze.findJidByLid(j1, global.store) || j1;
+					let p2 = naze.findJidByLid(j2, global.store) || j2;
+					return naze.decodeJid(p1) === naze.decodeJid(p2);
+				};
+				let existingIndex = activeAbsen.list.findIndex(u => isSameUser(u.id, m.sender));
 				if (existingIndex !== -1) {
 					activeAbsen.list[existingIndex].name = userName; // Update name if changed
 				} else {
@@ -2650,13 +3123,14 @@ ATURAN:
 				// Edit the original pinned message
 				await naze.sendMessage(m.chat, { text: newText.trim(), edit: activeAbsen.key });
 				m.reply(`Berhasil absen!`);
+				if (global.db) await database.write(global.db);
 			}
 			break
 			case 'tutupabsen': {
 				if (!m.isGroup) return m.reply(global.mess.group)
 				if (!m.isBotAdmin) return m.reply(global.mess.botAdmin)
 				if (!m.isAdmin) return m.reply(global.mess.admin)
-				let activeAbsen = global.db.database.absen[m.chat];
+				let activeAbsen = global.db.absen[m.chat];
 				if (!activeAbsen) return m.reply('Tidak ada sesi absen yang aktif di grup ini.');
 				
 				// Unpin message
@@ -2679,7 +3153,8 @@ ATURAN:
 				
 				await naze.sendMessage(m.chat, { text: resultMessage });
 				
-				delete global.db.database.absen[m.chat];
+				delete global.db.absen[m.chat];
+				if (global.db) await database.write(global.db);
 			}
 			break
 
@@ -3689,7 +4164,7 @@ Select Bot Settings:
 			break
 			case 'ssweb': {
 				if (!isPremium) return m.reply(global.mess.prem)
-				if (!text) return m.reply(`Example: ${prefix + command} https://github.com/nazedev/naze-md`)
+				if (!text) return m.reply(`Example: ${prefix + command} https://github.com/faridSrydi`)
 				let anu = 'https://' + text.replace(/^https?:\/\//, '')
 				let hasil;
 				try {
@@ -4098,7 +4573,7 @@ Select Bot Settings:
 			break
 			case 'tinyurl': case 'shorturl': case 'shortlink': {
 				if (!isLimit) return m.reply(global.mess.limit)
-				if (!text || !isUrl(text)) return m.reply(`Example: ${prefix + command} https://github.com/nazedev/hitori`)
+				if (!text || !isUrl(text)) return m.reply(`Example: ${prefix + command} https://github.com`)
 				let hasil = await fetchApi('/other/tinyurl', { url: text });
 				m.reply('Url : ' + hasil.result)
 				setLimit(m, db)
@@ -4106,7 +4581,7 @@ Select Bot Settings:
 			break
 			case 'git': case 'gitclone': {
 				if (!isLimit) return m.reply(global.mess.limit)
-				if (!args[0]) return m.reply(`Example: ${prefix + command} https://github.com/nazedev/hitori`)
+				if (!args[0]) return m.reply(`Example: ${prefix + command} https://github.com/faridSrydi/machine-learning`)
 				if (!isUrl(args[0]) && !args[0].includes('github.com')) return m.reply('Gunakan Url Github!')
 				let [, user, repo] = args[0].match(/(?:https|git)(?::\/\/|@)github\.com[\/:]([^\/:]+)\/(.+)/i) || []
 				try {
@@ -4120,7 +4595,27 @@ Select Bot Settings:
 			
 			// Ai Menu
 			case 'ai': case 'ti': case 'bard': case 'gemini': {
-				if (!text) return m.reply(`Example: ${prefix + command} query`)
+				let aiQuery = text;
+				if (!aiQuery) {
+					const greetings = [
+						"Halo! Saya TI Assistant Bot. Ada yang bisa saya bantu? 🤖",
+						"Hai! TI Assistant Bot siap membantu Anda. 🚀",
+						"Halo! Saya TI Assistant Bot, siap membantu kapan saja. 😊",
+						"Selamat datang! Saya TI Assistant Bot. 👋",
+						"Hai! Bersama TI Assistant Bot, ada yang bisa dibantu? ✨",
+						"Halo! TI Assistant Bot di sini. Ada pertanyaan? 💡",
+						"Hai! Saya TI Assistant Bot. Mari mulai. 🚀",
+						"Halo! TI Assistant Bot siap menemani aktivitas Anda. 🤖",
+						"Hai! Saya TI Assistant Bot, asisten digital Anda. 😊",
+						"Halo! TI Assistant Bot aktif dan siap membantu. ⚡",
+						"Selamat datang! TI Assistant Bot siap melayani Anda. 🎉",
+						"Hai! TI Assistant Bot online. Ada yang bisa saya bantu? 🔍",
+						"Halo! Saya TI Assistant Bot, siap menjawab pertanyaan Anda. 📚",
+						"Hai! Terhubung dengan TI Assistant Bot. 🚀",
+						"Halo! TI Assistant Bot hadir untuk membantu Anda. ✨"
+					];
+					return m.reply(pickRandom(greetings));
+				}
 				
 				// Build context
 				let contextInfo = '';
@@ -4133,7 +4628,8 @@ Select Bot Settings:
 					}).filter(Boolean);
 					contextInfo += `\n[INFO GRUP] Nama grup: "${groupName}", Jumlah anggota: ${memberList.length} orang.`;
 					contextInfo += `\nDaftar nomor anggota grup: ${memberList.join(', ')}`;
-					contextInfo += `\nJika diminta menandai/tag semua anggota, tulis setiap anggota dengan format @nomor (contoh: @628xxx). Jangan menolak.`;
+					contextInfo += `\nJika diminta menandai/tag semua anggota, tulis setiap anggota dengan format @nomor (contoh: @628xxx). Jangan menolak.
+- Jika user meminta untuk tag/sebut salah satu anggota ("tag salah satu", "tag 1 orang", "tag acak", "tag disini", "tag salah satu anggota disini"), kamu WAJIB memilih 1 nomor anggota secara acak dari daftar nomor anggota grup di atas dan langsung menyebutnya/tag mereka di dalam responmu dengan format @nomor (contoh: "Halo @628xxx!"). JANGAN MENOLAK, jangan beralasan perlu izin admin, dan JANGAN menyertakan tag [EXECUTE: tag] atau command khayalan lainnya. Cukup sebut langsung nomornya menggunakan format @nomor di dalam teks responmu.`;
 				} else {
 					contextInfo += `\n[INFO] Ini adalah chat pribadi (private chat).`;
 				}
@@ -4247,11 +4743,18 @@ Jika user mengajak bermain game (contoh: tebakgambar, tebaklagu, susunkata, dll.
 2. Jika ada, Anda WAJIB memicu permainan tersebut menggunakan format [EXECUTE: nama_game]. Contoh: "Ti play game tebakgambar" -> [EXECUTE: tebakgambar], "Ti main tebak lagu" -> [EXECUTE: tebaklagu].
 3. JANGAN PERNAH menyimulasikan pertanyaan atau mengirim gambar game sendiri secara manual di teks jawaban Anda. Serahkan sepenuhnya kepada bot untuk memicu gamenya.
 
-[ATURAN MUSIK / LAGU / VIDEO]
-Jika user meminta mengirim, putar, download, atau carikan lagu/musik/video:
-1. Gunakan perintah [EXECUTE: play <judul lagu/artis>]. Contoh: "Ti kirim lagu dido thankyou" -> [EXECUTE: play dido thank you]
-2. JANGAN gunakan ytmp3 atau ytmp4 secara langsung karena itu butuh URL YouTube, bukan nama lagu.
-3. Command "play" akan mencari lagu di YouTube dan memberikan pilihan download audio/video.
+[ATURAN MUSIK / LAGU / VIDEO / AUDIO - SANGAT PENTING]
+ATURAN UTAMA: Ketika user meminta kirim/play/putar lagu/audio/video/musik, Anda WAJIB LANGSUNG mengeksekusi tag yang sesuai. DILARANG KERAS memberikan rekomendasi teks, daftar lagu, bertanya balik, meminta konfirmasi, atau memberikan opsi. LANGSUNG EKSEKUSI.
+
+Apapun yang user sebut setelah kata "kirim lagu/audio/video" atau "play" adalah JUDUL yang harus dicari di YouTube. Langsung pakai sebagai query pencarian.
+
+1. KIRIM AUDIO / LAGU: Kata kunci "kirim lagu/audio/musik", "play lagu/audio", "putar lagu" -> WAJIB gunakan [PLAY_AUDIO: <query>].
+   Contoh: "Ti kirim lagu disarankan dibandung" -> [PLAY_AUDIO: disarankan dibandung], "Ti kirim lagu anjay" -> [PLAY_AUDIO: anjay]
+2. KIRIM VIDEO: Kata kunci "kirim video", "play video" -> WAJIB gunakan [PLAY_VIDEO: <query>].
+   Contoh: "Ti kirim video upin ipin" -> [PLAY_VIDEO: upin ipin]
+3. PLAY (tanpa sebut lagu/audio/video): -> gunakan [EXECUTE: play <judul>].
+
+LARANGAN: DILARANG memberikan rekomendasi teks, bertanya balik, meminta konfirmasi judul, atau menjelaskan cara pakai command. LANGSUNG EKSEKUSI.
 
 [ATURAN GAMBAR / IMAGE]
 Kamu memiliki kemampuan untuk MEMBUAT gambar AI dan MENCARI gambar dari internet.
@@ -4281,11 +4784,11 @@ ATURAN:
 - Ketika menyertakan tag [EXECUTE: ...], pastikan nama_command persis seperti yang tertulis di daftar perintah di atas (case-sensitive lowercase) dan letakkan tag tersebut di bagian paling akhir dari responmu.`;
 				
 				let googleContext = '';
-				const isSimpleGreeting = /^(halo|helo|hi|hai|p|assalamualaikum|tes|test|pagi|siang|sore|malam)$/i.test(text);
-				const isDirectAction = /^(buatkan|bikin|generate|cari|carikan|kirim|kirimin|putar|play|main)\b/i.test(text);
-				if (text.length >= 5 && !isSimpleGreeting && !isDirectAction) {
+				const isSimpleGreeting = /^(halo|helo|hi|hai|p|assalamualaikum|tes|test|pagi|siang|sore|malam)$/i.test(aiQuery);
+				const isDirectAction = /^(buatkan|bikin|generate|cari|carikan|kirim|kirimin|putar|play|main)\b/i.test(aiQuery);
+				if (aiQuery.length >= 5 && !isSimpleGreeting && !isDirectAction) {
 					try {
-						const searchRes = await fetchApi('/search/google', { query: text });
+						const searchRes = await fetchApi('/search/google', { query: aiQuery });
 						if (searchRes && searchRes.result && searchRes.result.length > 0) {
 							googleContext += `\n\n[HASIL PENCARIAN GOOGLE TERBARU (REAL-TIME)]`;
 							googleContext += `\nBerikut adalah hasil pencarian Google terbaru untuk membantu Anda menjawab pertanyaan dengan sangat up-to-date, akurat, dan sesuai dengan fakta tahun ${new Date().getFullYear()}:`;
@@ -4306,18 +4809,11 @@ ATURAN:
 
 				const identityPrompt = `Kamu adalah Ti Assistant Bot, dibuat oleh Farid Suryadi. JAWABLAH pertanyaan secara langsung tanpa memperkenalkan diri kecuali jika kamu ditanya tentang siapa kamu, namamu, atau pembuatmu.${contextInfo}\n\nPertanyaan: `;
 				try {
-					let hasil;
-					if (imageUrl) {
-						hasil = await fetchApi('/ai/gemini', { query: identityPrompt + text, url: imageUrl });
-					} else {
-						hasil = await fetchApi('/ai/gemini-flash-lite', { query: identityPrompt + text });
-					}
-					let answer = hasil?.result?.text;
-					if (!answer) throw new Error("No response from primary API");
+					let answer = await global.callNazeAI(identityPrompt + aiQuery, imageUrl);
 					await handleAIResponse(answer);
 				} catch (e) {
 					try {
-						let res = await chatAI(text, contextInfo);
+						let res = await chatAI(aiQuery, contextInfo);
 						await handleAIResponse(res);
 					} catch (fallbackError) {
 						m.reply(pickRandom(['Fitur Ai sedang bermasalah!','Tidak dapat terhubung ke ai!','Sistem Ai sedang sibuk sekarang!','Fitur sedang tidak dapat digunakan!']))
@@ -4325,51 +4821,16 @@ ATURAN:
 				}
 			}
 			break
-			case 'archipelago': case 'grok': case 'glm': case 'claude': {
-				if (global.APIKeys[global.APIs.neosantara] === 'API_KEY_NEOSANTARA_AI') return m.reply('Silahkan Ganti Apikey Neosantara Ai!\nDi file settings.js. Example: .setapikey neo key_nya');
+			case 'archipelago': case 'grok': case 'glm': case 'claude': case 'deepseek': case 'r1': {
 				if (!text) return m.reply('Halo! Ada yang bisa dibantu hari ini?')
-				try {
-					let model;
-					if (command == 'glm') model = 'glm-4.7-flash'
-					if (command == 'claude') model = 'claude-3-haiku'
-					if (command == 'archipelago') model = 'archipelago-70b'
-					if (command == 'grok') model = 'grok-4.1-fast-non-reasoning'
-					
-					const response = await fetchApi('/chat/completions', {
-						model, messages: [{ role: 'user', content: text }]
-					}, {
-						api: 2, method: 'POST',
-						headers: {
-							'Authorization': `Bearer ${global.APIKeys[global.APIs.neosantara]}`
-						}
-					});
-					await m.reply(response.choices[0].message.content);
-				} catch (e) {
-					m.reply('Waduh, ada kendala pas nanya ke Neosantara nih.');
+				if (command === 'deepseek' || command === 'r1') {
+					m.reply('Tunggu bentar, lagi mikir... 🧠');
 				}
-			}
-			break
-			case 'deepseek': case 'r1': {
-				if (global.APIKeys[global.APIs.neosantara] === 'API_KEY_NEOSANTARA_AI') return m.reply('Silahkan Ganti Apikey Neosantara Ai!\nDi file settings.js. Example: .setapikey neo key_nya');
-				if (!text) return m.reply('Halo! Ada yang bisa dibantu hari ini?');
-				m.reply('Tunggu bentar, lagi mikir... 🧠');
 				try {
-					const response = await fetchApi('/chat/completions', {
-						model: 'deepseek-r1',
-						messages: [{ role: 'user', content: text }],
-						thinking: { type: 'enabled', budget_tokens: 2048 }
-					}, {
-						api: 2, method: 'POST',
-						headers: {
-							'Authorization': `Bearer ${global.APIKeys[global.APIs.neosantara]}`
-						}
-					});
-					const result = response.choices[0].message;
-					const thought = result.reasoning_content ? `*Proses Mikir:*\n_${result.reasoning_content}_` : '';
-					await m.reply(thought + result.content);
+					let answer = await global.callNazeAI(text);
+					await m.reply(answer);
 				} catch (e) {
-					console.log(e);
-					m.reply('Waduh, ada kendala pas nanya ke Neosantara nih.');
+					m.reply('Waduh, ada kendala pas memproses perintah ini.');
 				}
 			}
 			break
@@ -4635,15 +5096,27 @@ ATURAN:
 				m.react('⏳')
 				try {
 					const { result: hasil } = await fetchApi('/download/youtube', { url: text });
-					await m.reply({ audio: { url: hasil.download }, mimetype: 'audio/mpeg' })
-					setLimit(m, db)
+					if (hasil?.download && hasil.type === 'audio') {
+						await m.reply({ audio: { url: hasil.download }, mimetype: 'audio/mpeg' })
+						setLimit(m, db)
+					} else {
+						throw new Error('Not an audio result');
+					}
 				} catch (e) {
+					let audioPath = null;
 					try {
 						const hasil = await ytMp3(text);
-						await m.reply({ audio: { url: hasil.result }, mimetype: 'audio/mpeg' })
-						setLimit(m, db)
+						audioPath = hasil.result;
+						if (audioPath && fs.existsSync(audioPath)) {
+							await m.reply({ audio: { url: audioPath }, mimetype: 'audio/mpeg' })
+							setLimit(m, db)
+						}
 					} catch (e) {
 						m.reply(global.mess.fail);
+					} finally {
+						if (audioPath && fs.existsSync(audioPath)) {
+							try { fs.unlinkSync(audioPath); } catch {}
+						}
 					}
 				}
 			}
@@ -4653,29 +5126,47 @@ ATURAN:
 				if (!text) return m.reply(`Example: ${prefix + command} url_youtube`)
 				if (!text.includes('youtu')) return m.reply('Url Tidak Mengandung Result Dari Youtube!')
 				m.react('⏳')
+				let sent = false;
+				// Method 1: Try local ytMp4 (uses yt-dlp forcing H.264)
+				let videoPath = null;
 				try {
-					const { result: hasil } = await fetchApi('/download/youtube', { url: text, format: '1080' });
-					await m.reply({ video: { url: hasil.download }, caption: `*📍Title:* ${hasil.title}\n*✏Quality:* ${hasil.quality ? hasil.quality : ''}\n*⏳Duration:* ${hasil.duration}` })
-					setLimit(m, db)
-				} catch (e) {
-					let videoPath = null;
-					try {
-						const hasil = await ytMp4(text);
-						videoPath = hasil.result;
-						await m.reply({ video: { url: videoPath }, caption: `*📍Title:* ${hasil.title}\n*✏Description:* ${hasil.desc ? hasil.desc : ''}\n*🚀Channel:* ${hasil.channel}\n*🗓Upload at:* ${hasil.uploadDate}`});
-						setLimit(m, db)
-					} catch (e) {
-						m.reply(global.mess.fail);
-					} finally {
-						if (videoPath && fs.existsSync(videoPath)) {
-							try {
-								fs.unlinkSync(videoPath);
-							} catch (e) {
-								console.error(e);
-							}
+					const hasil = await ytMp4(text);
+					videoPath = hasil.result;
+					if (videoPath && fs.existsSync(videoPath)) {
+						const size = fs.statSync(videoPath).size;
+						if (size > 16 * 1024 * 1024) {
+							await m.reply('Ukuran video melebihi 16MB. Mengirim sebagai dokumen...');
+							await m.reply({ document: { url: videoPath }, mimetype: 'video/mp4', fileName: `${hasil.title || 'video'}.mp4`, caption: `*📍Title:* ${hasil.title}\n*🚀Channel:* ${hasil.channel}\n*🗓Upload at:* ${hasil.uploadDate}`});
+						} else {
+							await m.reply({ video: { url: videoPath }, caption: `*📍Title:* ${hasil.title}\n*✏Description:* ${hasil.desc ? hasil.desc : ''}\n*🚀Channel:* ${hasil.channel}\n*🗓Upload at:* ${hasil.uploadDate}`});
 						}
+						setLimit(m, db);
+						sent = true;
+					}
+				} catch (e) {
+					console.error('ytMp4 error:', e.message);
+				} finally {
+					if (videoPath && fs.existsSync(videoPath)) {
+						try { fs.unlinkSync(videoPath); } catch {}
 					}
 				}
+				
+				// Method 2: Try various formats from API
+				if (!sent) {
+					const formats = ['360', '480', '720', '1080'];
+					for (const fmt of formats) {
+						if (sent) break;
+						try {
+							const { result: hasil } = await fetchApi('/download/youtube', { url: text, format: fmt });
+							if (hasil?.download && hasil.type === 'video') {
+								await m.reply({ video: { url: hasil.download }, mimetype: 'video/mp4', caption: `*📍Title:* ${hasil.title}\n*✏Quality:* ${fmt}p\n*⏳Duration:* ${hasil.duration}` });
+								setLimit(m, db);
+								sent = true;
+							}
+						} catch {}
+					}
+				}
+				if (!sent) m.reply(global.mess.fail);
 			}
 			break
 			case 'ytmp3doc': {
@@ -4685,15 +5176,27 @@ ATURAN:
 				m.react('⏳')
 				try {
 					const { result: hasil } = await fetchApi('/download/youtube', { url: text });
-					await m.reply({ document: { url: hasil.download }, mimetype: 'audio/mpeg', fileName: `${hasil.title || 'audio'}.mp3` })
-					setLimit(m, db)
+					if (hasil?.download && hasil.type === 'audio') {
+						await m.reply({ document: { url: hasil.download }, mimetype: 'audio/mpeg', fileName: `${hasil.title || 'audio'}.mp3` })
+						setLimit(m, db)
+					} else {
+						throw new Error('Not an audio result');
+					}
 				} catch (e) {
+					let audioPath = null;
 					try {
 						const hasil = await ytMp3(text);
-						await m.reply({ document: { url: hasil.result }, mimetype: 'audio/mpeg', fileName: `${hasil.title || 'audio'}.mp3` })
-						setLimit(m, db)
+						audioPath = hasil.result;
+						if (audioPath && fs.existsSync(audioPath)) {
+							await m.reply({ document: { url: audioPath }, mimetype: 'audio/mpeg', fileName: `${hasil.title || 'audio'}.mp3` })
+							setLimit(m, db)
+						}
 					} catch (e) {
 						m.reply(global.mess.fail);
+					} finally {
+						if (audioPath && fs.existsSync(audioPath)) {
+							try { fs.unlinkSync(audioPath); } catch {}
+						}
 					}
 				}
 			}
@@ -4703,29 +5206,41 @@ ATURAN:
 				if (!text) return m.reply(`Example: ${prefix + command} url_youtube`)
 				if (!text.includes('youtu')) return m.reply('Url Tidak Mengandung Result Dari Youtube!')
 				m.react('⏳')
+				let sent = false;
+				// Method 1: Try local ytMp4
+				let videoPath = null;
 				try {
-					const { result: hasil } = await fetchApi('/download/youtube', { url: text, format: '1080' });
-					await m.reply({ document: { url: hasil.download }, mimetype: 'video/mp4', fileName: `${hasil.title || 'video'}.mp4`, caption: `*📍Title:* ${hasil.title}\n*✏Quality:* ${hasil.quality ? hasil.quality : ''}\n*⏳Duration:* ${hasil.duration}` })
-					setLimit(m, db)
-				} catch (e) {
-					let videoPath = null;
-					try {
-						const hasil = await ytMp4(text);
-						videoPath = hasil.result;
+					const hasil = await ytMp4(text);
+					videoPath = hasil.result;
+					if (videoPath && fs.existsSync(videoPath)) {
 						await m.reply({ document: { url: videoPath }, mimetype: 'video/mp4', fileName: `${hasil.title || 'video'}.mp4`, caption: `*📍Title:* ${hasil.title}\n*🚀Channel:* ${hasil.channel}\n*🗓Upload at:* ${hasil.uploadDate}`});
-						setLimit(m, db)
-					} catch (e) {
-						m.reply(global.mess.fail);
-					} finally {
-						if (videoPath && fs.existsSync(videoPath)) {
-							try {
-								fs.unlinkSync(videoPath);
-							} catch (e) {
-								console.error(e);
-							}
-						}
+						setLimit(m, db);
+						sent = true;
+					}
+				} catch (e) {
+					console.error('ytMp4doc error:', e.message);
+				} finally {
+					if (videoPath && fs.existsSync(videoPath)) {
+						try { fs.unlinkSync(videoPath); } catch {}
 					}
 				}
+				
+				// Method 2: Try various formats from API
+				if (!sent) {
+					const formats = ['360', '480', '720', '1080'];
+					for (const fmt of formats) {
+						if (sent) break;
+						try {
+							const { result: hasil } = await fetchApi('/download/youtube', { url: text, format: fmt });
+							if (hasil?.download && hasil.type === 'video') {
+								await m.reply({ document: { url: hasil.download }, mimetype: 'video/mp4', fileName: `${hasil.title || 'video'}.mp4`, caption: `*📍Title:* ${hasil.title}\n*✏Quality:* ${fmt}p\n*⏳Duration:* ${hasil.duration}` });
+								setLimit(m, db);
+								sent = true;
+							}
+						} catch {}
+					}
+				}
+				if (!sent) m.reply(global.mess.fail);
 			}
 			break
 			case 'ig': case 'instagram': case 'instadl': case 'igdown': case 'igdl': case 'igstory': case 'igstories': {
@@ -6332,8 +6847,8 @@ ${(isCreator && !m.isGroup) ? `│${setv} ${prefix}jadibot 🔸️\n│${setv} $
 					return m.reply(linkText);
 				}
 				
-				global.db.database.toPdf = global.db.database.toPdf || {};
-				global.db.database.toPdf[m.sender] = {
+				global.db.toPdf = global.db.toPdf || {};
+				global.db.toPdf[m.sender] = {
 					images: [],
 					step: 'collecting_images'
 				};
@@ -6348,7 +6863,7 @@ ${(isCreator && !m.isGroup) ? `│${setv} ${prefix}jadibot 🔸️\n│${setv} $
 				
 				await naze.sendButtonMsg(m.chat, {
 					text: welcomeMsg,
-					footer: 'Hitori Bot Campus Tools',
+					footer: 'Ti Assistant Bot Campus Tools',
 					buttons: [
 						{ buttonId: '.pdfdone', buttonText: { displayText: 'Sudah ✅' }, type: 1 },
 						{ buttonId: '.pdfcancel', buttonText: { displayText: 'Batalkan ❌' }, type: 1 }
@@ -6358,8 +6873,8 @@ ${(isCreator && !m.isGroup) ? `│${setv} ${prefix}jadibot 🔸️\n│${setv} $
 			break
 			case 'pdfdone': {
 				if (m.isGroup) return m.reply(global.mess.private);
-				global.db.database.toPdf = global.db.database.toPdf || {};
-				let pending = global.db.database.toPdf[m.sender];
+				global.db.toPdf = global.db.toPdf || {};
+				let pending = global.db.toPdf[m.sender];
 				if (!pending || pending.images.length === 0) {
 					return m.reply('Anda belum mengirimkan foto apa pun! Harap kirimkan minimal 1 foto terlebih dahulu.');
 				}
@@ -6369,9 +6884,9 @@ ${(isCreator && !m.isGroup) ? `│${setv} ${prefix}jadibot 🔸️\n│${setv} $
 			break
 			case 'pdfcancel': {
 				if (m.isGroup) return m.reply(global.mess.private);
-				global.db.database.toPdf = global.db.database.toPdf || {};
-				if (global.db.database.toPdf[m.sender]) {
-					delete global.db.database.toPdf[m.sender];
+				global.db.toPdf = global.db.toPdf || {};
+				if (global.db.toPdf[m.sender]) {
+					delete global.db.toPdf[m.sender];
 					m.reply('Proses konversi foto ke PDF berhasil dibatalkan.');
 				} else {
 					m.reply('Tidak ada proses konversi PDF yang sedang berjalan.');
@@ -6609,6 +7124,9 @@ ${(isCreator && !m.isGroup) ? `│${setv} ${prefix}jadibot 🔸️\n│${setv} $
 │${setv} ${prefix}unmute
 │${setv} ${prefix}creategc
 │${setv} ${prefix}clearchat
+│${setv} ${prefix}bcgc [pesan/reply]
+│${setv} ${prefix}bcuser [pesan/reply]
+│${setv} ${prefix}remindersolatall [on/off]
 │${setv} ${prefix}addprem
 │${setv} ${prefix}delprem
 │${setv} ${prefix}listprem
