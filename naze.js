@@ -270,6 +270,16 @@ const nazeHandler = async (naze, m, msg, store) => {
 		(m.type == 'protocolMessage') ? (m.message.protocolMessage?.editedMessage?.extendedTextMessage?.text || m.message.protocolMessage?.editedMessage?.conversation || m.message.protocolMessage?.editedMessage?.imageMessage?.caption || m.message.protocolMessage?.editedMessage?.videoMessage?.caption || '') : '') || '';
 		
 		const budy = (typeof m.text == 'string' ? m.text : '')
+		const startsWithTi = /^ti\b/i.test(budy);
+		const botLid = naze.user.lid ? naze.decodeJid(naze.user.lid) : null;
+		const botCleanNumber = botNumber.split('@')[0];
+		const botCleanLid = botLid ? botLid.split('@')[0] : null;
+		const hasBotTag = budy.includes(`@${botCleanNumber}`) || (botCleanLid && budy.includes(`@${botCleanLid}`));
+		let isMentioned = (m.mentionedJid && m.mentionedJid.some(jid => {
+			let decoded = naze.decodeJid(jid);
+			return decoded === botNumber || (botLid && decoded === botLid);
+		})) || hasBotTag;
+
 		const isCreator = global.isOwner = ownerNumber.some(owner => {
 			const ownerJid = owner.includes('@') ? owner : owner + '@s.whatsapp.net';
 			const findJid = naze.findJidByLid(jidNormalizedUser(ownerJid), store, true);
@@ -289,7 +299,7 @@ const nazeHandler = async (naze, m, msg, store) => {
 			isCmd = false;
 			command = '';
 		}
-		if (isCmd && prefix === '' && (command === 'ti' || command === 'ai')) {
+		if (isCmd && prefix === '' && (/^(ti|ai)$/i.test(command.replace(/[^a-zA-Z]/g, '')))) {
 			isCmd = false;
 			command = '';
 		}
@@ -314,6 +324,53 @@ const nazeHandler = async (naze, m, msg, store) => {
 		const handleAIResponse = async (answer) => {
 			if (!answer) return;
 			
+			const userQuery = (budy || body || '').toLowerCase();
+			
+			// Check if user is asking for text-only output (e.g., poem, story, script, info, news)
+			const textOnlyKeywords = [
+				'puisi', 'cerita', 'lirik', 'pantun', 'dongeng', 'essay', 'esai', 'artikel', 
+				'kode', 'code', 'script', 'lelucon', 'joke', 'candaan', 'soal', 'tugas', 
+				'rumus', 'sejarah', 'biografi', 'sapaan', 'chat', 'percakapan', 'berita', 
+				'news', 'informasi', 'info', 'website', 'situs', 'web', 'aplikasi', 'app'
+			];
+			const hasTextOnlyTarget = textOnlyKeywords.some(kw => userQuery.includes(kw));
+			
+			// Check if user query contains image keywords
+			const imageKeywords = [
+				'gambar', 'foto', 'image', 'photo', 'pic', 'picture', 'painting', 'lukisan', 
+				'wallpaper', 'ilustrasi', 'illustration', 'art', 'sketsa', 'sketch', 'draw', 
+				'paint', 'avatar', 'logo', 'icon', 'potret', 'portrait', 'lukis', 'visual', 
+				'desain', 'design', 'grafis', 'graphic', 'anime', 'gambarkan', 'gambarin', 
+				'vector', 'vektor', '3d', 'render', 'banner', 'poster'
+			];
+			const hasImageTarget = imageKeywords.some(kw => userQuery.includes(kw));
+			const hasImageAction = /^(buatkan|bikin|generate|cari|carikan|kirim|kirimin|kasih|tampilkan|draw|paint|create|design)\b/i.test(userQuery);
+			const isImageAllowed = hasImageTarget || (hasImageAction && !hasTextOnlyTarget);
+			
+			// Check if user query contains audio/video keywords
+			const audioKeywords = [
+				'lagu', 'audio', 'musik', 'music', 'sound', 'mp3', 'vn', 'voice', 'suara', 'sing', 'nyanyi', 'sholawat', 'murottal', 'podcast'
+			];
+			const hasAudioTarget = audioKeywords.some(kw => userQuery.includes(kw));
+			
+			const videoKeywords = [
+				'video', 'film', 'movie', 'vid', 'mp4', 'bioskop', 'cinema'
+			];
+			const hasVideoTarget = videoKeywords.some(kw => userQuery.includes(kw));
+			const hasPlayAction = /^(putar|play|kirim|kirimin|play_audio|play_video)\b/i.test(userQuery);
+			
+			const isAudioAllowed = hasAudioTarget || (hasPlayAction && !hasTextOnlyTarget && !hasImageTarget);
+			const isVideoAllowed = hasVideoTarget || (hasPlayAction && !hasTextOnlyTarget && !hasImageTarget);
+			
+			const isPlaceholder = (val) => {
+				const lower = val.trim().toLowerCase();
+				const placeholders = [
+					'prompt', 'english_prompt', '<prompt>', 'query', '<query>', 'query_pencarian', 
+					'judul', '<judul>', 'nama_game', 'teks_pesan', 'durasi', 'pesan', 'nomor', '@nomor'
+				];
+				return placeholders.some(ph => lower.includes(ph)) || lower === '...' || lower === '';
+			};
+
 			// Clean all special tags from the displayed text
 			let cleanedAnswer = answer.replace(/\[EXECUTE:\s*(\w+)(?:\s+(.*?))?\]/gi, '').replace(/\[IMAGE_GEN:\s*(.*?)\]/gi, '').replace(/\[IMAGE_SEARCH:\s*(.*?)\]/gi, '').replace(/\[PLAY_AUDIO:\s*(.*?)\]/gi, '').replace(/\[PLAY_VIDEO:\s*(.*?)\]/gi, '').trim();
 			if (cleanedAnswer) {
@@ -326,8 +383,8 @@ const nazeHandler = async (naze, m, msg, store) => {
 			}
 			
 			// Handle IMAGE_GEN tag
-			const imgGenMatch = answer.match(/\[IMAGE_GEN:\s*(.*?)\][\s.]*$/i);
-			if (imgGenMatch) {
+			const imgGenMatch = answer.match(/\[IMAGE_GEN:\s*(.*?)\]/i);
+			if (imgGenMatch && isImageAllowed && !isPlaceholder(imgGenMatch[1])) {
 				const imgPrompt = imgGenMatch[1].trim();
 				try {
 					m.react('🎨');
@@ -346,8 +403,8 @@ const nazeHandler = async (naze, m, msg, store) => {
 			}
 			
 			// Handle IMAGE_SEARCH tag
-			const imgSearchMatch = answer.match(/\[IMAGE_SEARCH:\s*(.*?)\][\s.]*$/i);
-			if (imgSearchMatch) {
+			const imgSearchMatch = answer.match(/\[IMAGE_SEARCH:\s*(.*?)\]/i);
+			if (imgSearchMatch && isImageAllowed && !isPlaceholder(imgSearchMatch[1])) {
 				const searchQuery = imgSearchMatch[1].trim();
 				try {
 					m.react('🔍');
@@ -370,8 +427,8 @@ const nazeHandler = async (naze, m, msg, store) => {
 			}
 			
 			// Handle PLAY_AUDIO tag - direct audio download by search query
-			const playAudioMatch = answer.match(/\[PLAY_AUDIO:\s*(.*?)\][\s.]*$/i);
-			if (playAudioMatch) {
+			const playAudioMatch = answer.match(/\[PLAY_AUDIO:\s*(.*?)\]/i);
+			if (playAudioMatch && isAudioAllowed && !isPlaceholder(playAudioMatch[1])) {
 				const audioQuery = playAudioMatch[1].trim();
 				try {
 					m.react('🎵');
@@ -416,8 +473,8 @@ const nazeHandler = async (naze, m, msg, store) => {
 			}
 			
 			// Handle PLAY_VIDEO tag - direct video download by search query
-			const playVideoMatch = answer.match(/\[PLAY_VIDEO:\s*(.*?)\][\s.]*$/i);
-			if (playVideoMatch) {
+			const playVideoMatch = answer.match(/\[PLAY_VIDEO:\s*(.*?)\]/i);
+			if (playVideoMatch && isVideoAllowed && !isPlaceholder(playVideoMatch[1])) {
 				const videoQuery = playVideoMatch[1].trim();
 				try {
 					m.react('🎬');
@@ -482,8 +539,8 @@ const nazeHandler = async (naze, m, msg, store) => {
 			}
 			
 			// Parse EXECUTE command
-			const execMatch = answer.match(/\[EXECUTE:\s*(\w+)(?:\s+(.*?))?\][\s.]*$/i);
-			if (execMatch) {
+			const execMatch = answer.match(/\[EXECUTE:\s*(\w+)(?:\s+(.*?))?\]/i);
+			if (execMatch && !isPlaceholder(execMatch[1]) && (!execMatch[2] || !isPlaceholder(execMatch[2]))) {
 				const execCmd = execMatch[1].toLowerCase();
 				const execArgs = execMatch[2] ? execMatch[2].trim() : '';
 				
@@ -570,7 +627,7 @@ const nazeHandler = async (naze, m, msg, store) => {
 			if ((set.grouponly === set.privateonly)) {
 				if (!naze.public && !m.key.fromMe) return
 			} else if (set.grouponly) {
-				if (!m.isGroup) return
+				if (!m.isGroup && !startsWithTi && !isMentioned) return
 			} else if (set.privateonly) {
 				if (m.isGroup) return
 			}
@@ -753,15 +810,6 @@ const nazeHandler = async (naze, m, msg, store) => {
 		}
 		
 		// No-prefix "ti" or tag trigger for AI & conversion interception
-		const startsWithTi = /^ti\b/i.test(budy);
-		const botLid = naze.user.lid ? naze.decodeJid(naze.user.lid) : null;
-		const botCleanNumber = botNumber.split('@')[0];
-		const botCleanLid = botLid ? botLid.split('@')[0] : null;
-		const hasBotTag = budy.includes(`@${botCleanNumber}`) || (botCleanLid && budy.includes(`@${botCleanLid}`));
-		let isMentioned = (m.mentionedJid && m.mentionedJid.some(jid => {
-			let decoded = naze.decodeJid(jid);
-			return decoded === botNumber || (botLid && decoded === botLid);
-		})) || hasBotTag;
 
 		if (!m.key.fromMe && (startsWithTi || isMentioned)) {
 			if (set.autotyping) {
