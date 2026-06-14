@@ -116,11 +116,6 @@ const sendUnoColorMenu = async (naze, playerId, room) => {
 };
 
 
-/*
-	* Create By Ti Assistant Bot
-	* Follow https://github.com/faridSrydi
-	* Whatsapp : https://whatsapp.com/channel/0029VaWOkNm7DAWtkvkJBK43
-*/
 
 try {
 	canvasModule = await import('@napi-rs/canvas');
@@ -6848,6 +6843,26 @@ ATURAN:
 					}
 					break;
 					
+					case 'help': {
+						const helpMsg = `🃏 *PANDUAN BERMAIN UNO BOT* 🃏\n\n` +
+							`*Cara Bermain:*\n` +
+							`1. Buat room baru atau masuk ke room dengan mengetik *${prefix}uno join* atau *${prefix}uno*.\n` +
+							`2. Setelah minimal 2 pemain bergabung, host dapat mengetik *${prefix}uno start* untuk memulai permainan.\n` +
+							`3. Setiap pemain akan dibagikan 7 kartu secara acak. Kartu awal di meja akan dikirim berupa stiker.\n` +
+							`4. Saat giliranmu, tekan tombol *Buka Kartu Anda 🃏* untuk melihat kartu di tangan secara privat.\n` +
+							`5. Pilih kartu yang ingin dimainkan. Kartu yang dipilih harus memiliki *warna yang sama* atau *angka/simbol yang sama* dengan kartu teratas di meja.\n` +
+							`6. Jika tidak memiliki kartu yang cocok, tekan opsi *Ambil Kartu 🃏* untuk mengambil 1 kartu baru dari dek dan melempar giliran ke pemain berikutnya.\n` +
+							`7. Pemain pertama yang kartu di tangannya habis dinyatakan sebagai pemenang! 🏆\n\n` +
+							`*Aturan Kartu Efek/Spesial:*\n` +
+							`• *Skip 🚫* : Melompati giliran pemain berikutnya.\n` +
+							`• *Reverse 🔁* : Mengubah arah putaran permainan.\n` +
+							`• *Draw 2 ➕2* : Pemain berikutnya wajib mengambil 2 kartu dari dek dan gilirannya dilewati.\n` +
+							`• *Wild Card 🌈* : Mengubah warna aktif di meja secara bebas.\n` +
+							`• *Wild Draw 4 🌈➕4* : Mengubah warna aktif di meja, memaksa pemain berikutnya mengambil 4 kartu dari dek, dan melompati gilirannya.`;
+						m.reply(helpMsg);
+					}
+					break;
+					
 					default: {
 						// Fallback: If no sub-command, join the room (convenience)
 						if (!room || room.state === 'WAITING') {
@@ -6871,11 +6886,11 @@ ATURAN:
 						} else {
 							m.reply(`🃏 *GAME UNO BOT* 🃏\n\n` +
 								`*Commands:*\n` +
-								`• \`${prefix}uno\` — Gabung/Buat room baru\n` +
-								`• \`${prefix}uno join\` — Gabung ke room\n` +
+								`• \`${prefix}uno\` / \`${prefix}uno join\` — Gabung/Buat room baru\n` +
 								`• \`${prefix}uno start\` — Mulai permainan (minimal 2 pemain)\n` +
 								`• \`${prefix}uno leave\` — Keluar dari room/permainan\n` +
-								`• \`${prefix}uno end\` — Hentikan sesi permainan`);
+								`• \`${prefix}uno end\` — Hentikan sesi permainan\n` +
+								`• \`${prefix}uno help\` — Panduan bermain & aturan game`);
 						}
 					}
 				}
@@ -7074,6 +7089,7 @@ ${(isCreator && !m.isGroup) ? `│${setv} ${prefix}jadibot 🔸️\n│${setv} $
 │${setv} ${prefix}ulartangga
 │${setv} ${prefix}blackjack
 │${setv} ${prefix}catur
+│${setv} ${prefix}uno
 │${setv} ${prefix}casino (nominal)
 │${setv} ${prefix}samgong (nominal)
 │${setv} ${prefix}rampok (@tag)
@@ -7461,6 +7477,7 @@ ${(isCreator && !m.isGroup) ? `│${setv} ${prefix}jadibot 🔸️\n│${setv} $
 │${setv} ${prefix}ulartangga
 │${setv} ${prefix}blackjack
 │${setv} ${prefix}catur
+│${setv} ${prefix}uno
 │${setv} ${prefix}casino (nominal)
 │${setv} ${prefix}samgong (nominal)
 │${setv} ${prefix}rampok (@tag)
