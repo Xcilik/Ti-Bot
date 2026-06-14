@@ -350,6 +350,7 @@ async function LoadDataBase(naze, m) {
 			menfes: {},
 			tekateki: {},
 			tictactoe: {},
+			uno: {},
 			tebaklirik: {},
 			kuismath: {},
 			blackjack: {},
