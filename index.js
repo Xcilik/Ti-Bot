@@ -125,7 +125,6 @@ global.callNazeAI = async (query, imageUrl = '') => {
 		settings = {
 			apiKeys: ["nz-273e5450f5", "nz-6bafa1c935", "nz-5e3ccd8154", "nz-99929aee2d", "nz-5487a58d50"],
 			endpoints: [
-				"https://api.naze.biz.id/ai/gemini-flash-lite",
 				"https://api.naze.biz.id/ai/chat",
 				"https://api.naze.biz.id/ai/chat2",
 				"https://api.naze.biz.id/ai/message",
