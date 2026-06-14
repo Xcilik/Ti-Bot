@@ -3437,7 +3437,7 @@ Bahasa respon harus ramah, sopan, dan membantu.\n\n${contextInfo}\n\nPertanyaan:
 				}
 			}
 			break
-			case 'tagall': {
+			case 'tagall': case 'all': {
 				if (!m.isGroup) return m.reply(global.mess.group)
 				if (!m.isAdmin) return m.reply(global.mess.admin)
 				if (!m.isBotAdmin) return m.reply(global.mess.botAdmin)
