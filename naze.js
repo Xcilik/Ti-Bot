@@ -22,6 +22,7 @@ import { generateWAMessageContent, jidNormalizedUser, getContentType } from 'bai
 import 'moment/min/locales.js';
 import { UguuSe } from './lib/uploader.js';
 import TicTacToe from './lib/tictactoe.js';
+import UnoGame from './lib/uno.js';
 import { antiSpam } from './src/antispam.js';
 import { ytMp4, ytMp3 } from './lib/scraper.js';
 import templateMenu from './lib/template_menu.js';
@@ -41,6 +42,79 @@ const timez = moment.tz.names();
 const menfesTimeouts = new Map();
 const settingsPath = path.join(__dirname, 'settings.js');
 let canvasModule = null;
+
+const sendUnoCardMenu = async (naze, playerId, room) => {
+	const player = room.players.find(p => p.id === playerId);
+	if (!player) return;
+	
+	const topCard = room.discardPile[room.discardPile.length - 1];
+	const topCardFormatted = UnoGame.formatCard(topCard);
+	
+	// Create rows for the list menu
+	const rows = player.cards.map((card, idx) => {
+		const formatted = UnoGame.formatCard(card);
+		const playable = room.canPlay(card);
+		return {
+			title: `${idx + 1}. ${formatted}`,
+			description: playable ? '✅ Bisa dimainkan' : '❌ Tidak cocok',
+			id: `uno_play_${card}`
+		};
+	});
+	
+	// Add Ambil Kartu option
+	rows.push({
+		title: 'Ambil Kartu 🃏',
+		description: 'Tarik 1 kartu dari dek dan lewati giliran',
+		id: 'uno_draw'
+	});
+	
+	const menuText = `🃏 *UNO GAME - GILIRANMU!* 🃏\n\n` +
+		`• *Pemain:* @${playerId.split('@')[0]}\n` +
+		`• *Kartu Teratas di Meja:* ${topCardFormatted} (Warna aktif: ${room.currentColor.toUpperCase()})\n` +
+		`• *Arah Putaran:* ${room.direction === 1 ? 'Kanan ➡️' : 'Kiri ⬅️'}\n\n` +
+		`Silakan klik tombol di bawah untuk melihat kartu Anda. Hanya @${playerId.split('@')[0]} yang dapat memainkan kartu.`;
+		
+	// Send as single_select button to group chat
+	await naze.sendButtonMsg(room.chat, {
+		text: menuText,
+		footer: 'Ti Bot UNO Game',
+		mentions: [playerId],
+		buttons: [{
+			buttonId: 'uno_menu',
+			buttonText: { displayText: 'Buka Kartu Anda 🃏' },
+			nativeFlowInfo: {
+				name: 'single_select',
+				paramsJson: JSON.stringify({
+					title: 'Pilih Kartu 🃏',
+					sections: [{
+						title: 'Kartu di Tangan Anda',
+						rows: rows
+					}]
+				})
+			},
+			type: 2
+		}]
+	});
+};
+
+const sendUnoColorMenu = async (naze, playerId, room) => {
+	const menuText = `🌈 *PILIH WARNA UNO* 🌈\n\n` +
+		`Pemain @${playerId.split('@')[0]} telah memainkan kartu Wild!\n` +
+		`Silakan pilih warna aktif berikutnya di bawah ini.`;
+		
+	await naze.sendButtonMsg(room.chat, {
+		text: menuText,
+		footer: 'Ti Bot UNO Game',
+		mentions: [playerId],
+		buttons: [
+			{ buttonId: 'uno_color_red', buttonText: { displayText: 'Merah 🔴' }, type: 1 },
+			{ buttonId: 'uno_color_blue', buttonText: { displayText: 'Biru 🔵' }, type: 1 },
+			{ buttonId: 'uno_color_green', buttonText: { displayText: 'Hijau 🟢' }, type: 1 },
+			{ buttonId: 'uno_color_yellow', buttonText: { displayText: 'Kuning 🟡' }, type: 1 }
+		]
+	});
+};
+
 
 /*
 	* Create By Ti Assistant Bot
@@ -202,6 +276,7 @@ const nazeHandler = async (naze, m, msg, store) => {
 	let tebaknegara = db.game.tebaknegara
 	let tebakgambar = db.game.tebakgambar
 	let tebakbendera = db.game.tebakbendera
+	let uno = db.game.uno
 	
 	const ownerNumber = set.owner = [...new Set([...global.owner, botNumber.split('@')[0], ...set?.owner || []])];
 	
@@ -1826,6 +1901,159 @@ Bahasa respon harus ramah, sopan, dan membantu.\n\n${contextInfo}\n\nPertanyaan:
 			user.afkReason = ''
 		}
 		
+		
+		// Intercept Group Chat Input for UNO game
+		if (m.isGroup) {
+			let room = uno[m.chat];
+			if (room && room.state === 'PLAYING') {
+				const bodyText = m.body.trim().toLowerCase();
+				
+				// Identify if it's an interactive List selection / Wild button
+				const isListAction = bodyText.startsWith('uno_play_') || bodyText === 'uno_draw' || bodyText.startsWith('uno_color_');
+				
+				if (isListAction) {
+					const player = room.players.find(p => p.id === m.sender);
+					if (!player) return; // Ignore messages from non-players
+					
+					const isCurrentTurn = room.getCurrentPlayer().id === m.sender;
+					
+					// Case A: Waiting for wild color selection
+					if (room.waitingForWild) {
+						if (room.waitingForWildPlayer !== m.sender) {
+							// If another player tries to click color button
+							await m.reply(`⏳ Hanya @${room.waitingForWildPlayer.split('@')[0]} yang bisa memilih warna!`, { mentions: [room.waitingForWildPlayer] });
+							return;
+						}
+						
+						let chosenColor = '';
+						if (bodyText === 'uno_color_red') {
+							chosenColor = 'red';
+						} else if (bodyText === 'uno_color_blue') {
+							chosenColor = 'blue';
+						} else if (bodyText === 'uno_color_green') {
+							chosenColor = 'green';
+						} else if (bodyText === 'uno_color_yellow') {
+							chosenColor = 'yellow';
+						}
+						
+						if (chosenColor) {
+							let res = room.setWildColor(m.sender, chosenColor);
+							if (res === 'SUCCESS') {
+								const colorEmoji = { red: '🔴 Merah', blue: '🔵 Biru', green: '🟢 Hijau', yellow: '🟡 Kuning' }[chosenColor];
+								const topCard = room.discardPile[room.discardPile.length - 1];
+								
+								// Send sticker of the wild card to group
+								const stickerBuff = fs.readFileSync('./src/media/uno/' + UnoGame.getCardFileName(topCard));
+								await naze.sendAsSticker(room.chat, stickerBuff, null, { packname: 'Ti Bot UNO', author: 'Farid Suryadi' });
+								
+								let nextPlayer = room.getCurrentPlayer();
+								let groupMsg = `@${m.sender.split('@')[0]} memilih warna *${colorEmoji}*!\n\n` +
+									`👉 Giliran selanjutnya: @${nextPlayer.id.split('@')[0]} (${nextPlayer.cards.length} kartu)`;
+									
+								await naze.sendText(room.chat, groupMsg, null, { mentions: [m.sender, nextPlayer.id] });
+								
+								// Send menu to the next player
+								await sendUnoCardMenu(naze, nextPlayer.id, room);
+							} else {
+								await m.reply('❌ Gagal menyetel warna!');
+							}
+						} else {
+							await m.reply('❌ Pilihan warna tidak valid!');
+						}
+						return;
+					}
+					
+					// Case B: Player trying to play or draw
+					if (!isCurrentTurn) {
+						let activePlayer = room.getCurrentPlayer();
+						await m.reply(`⏳ Bukan giliranmu! Giliran saat ini adalah @${activePlayer.id.split('@')[0]}.`, { mentions: [activePlayer.id] });
+						return;
+					}
+					
+					// 1. Draw Card
+					if (bodyText === 'uno_draw') {
+						let res = room.draw(m.sender);
+						if (res.status === 'SUCCESS') {
+							let nextPlayer = room.getCurrentPlayer();
+							let groupMsg = `@${m.sender.split('@')[0]} mengambil kartu dari deck dan melewati gilirannya.\n\n` +
+								`👉 Giliran selanjutnya: @${nextPlayer.id.split('@')[0]} (${nextPlayer.cards.length} kartu)`;
+								
+							await naze.sendText(room.chat, groupMsg, null, { mentions: [m.sender, nextPlayer.id] });
+							
+							const formattedDrawn = UnoGame.formatCard(res.card);
+							await m.reply(`✅ Kamu mengambil kartu *${formattedDrawn}*. Giliran dilewati.`);
+							
+							// Send menu to the next player
+							await sendUnoCardMenu(naze, nextPlayer.id, room);
+						} else {
+							await m.reply('❌ Gagal mengambil kartu!');
+						}
+						return;
+					}
+					
+					// 2. Play Card
+					let cardToPlay = '';
+					if (bodyText.startsWith('uno_play_')) {
+						cardToPlay = m.body.slice(9);
+					}
+					
+					if (cardToPlay) {
+						// Check if playable
+						if (!room.canPlay(cardToPlay)) {
+							const topCard = room.discardPile[room.discardPile.length - 1];
+							await m.reply(`❌ Kartu tidak cocok! Harus sewarna dengan *${room.currentColor.toUpperCase()}* atau sewilai dengan *${UnoGame.formatCard(topCard)}*.`);
+							return;
+						}
+						
+						let res = room.play(m.sender, cardToPlay);
+						if (res === 'CHOOSE_COLOR') {
+							await m.reply(`✅ Kamu memainkan *${UnoGame.formatCard(cardToPlay)}*`);
+							await sendUnoColorMenu(naze, m.sender, room);
+						} else if (res === 'SUCCESS') {
+							// Send sticker to group
+							const stickerBuff = fs.readFileSync('./src/media/uno/' + UnoGame.getCardFileName(cardToPlay));
+							await naze.sendAsSticker(room.chat, stickerBuff, null, { packname: 'Ti Bot UNO', author: 'Farid Suryadi' });
+							
+							// Check winner
+							let winner = room.checkWinner();
+							if (winner) {
+								let winMsg = `🎉🎉 *GAME OVER!* 🎉🎉\n\n` +
+									`🏆 @${winner.id.split('@')[0]} memenangkan permainan UNO! Selamat! 👑`;
+								await naze.sendText(room.chat, winMsg, null, { mentions: [winner.id] });
+								delete uno[room.chat];
+							} else {
+								// Normal play progression
+								let nextPlayer = room.getCurrentPlayer();
+								let effectMsg = '';
+								
+								// Parse effect
+								const parsed = room.parseCard(cardToPlay);
+								if (parsed.value === 10) { // Skip
+									effectMsg = `🚫 @${nextPlayer.id.split('@')[0]} dilewati gilirannya!`;
+								} else if (parsed.value === 11) { // Reverse
+									effectMsg = `🔁 Arah putaran diubah!`;
+								} else if (parsed.value === 12) { // Draw 2
+									effectMsg = `➕2 @${nextPlayer.id.split('@')[0]} menggambar 2 kartu dan dilewati gilirannya!`;
+								}
+								
+								let groupMsg = `@${m.sender.split('@')[0]} mengeluarkan kartu *${UnoGame.formatCard(cardToPlay)}*\n` +
+									(effectMsg ? `✨ ${effectMsg}\n` : '') +
+									`👉 Giliran selanjutnya: @${nextPlayer.id.split('@')[0]} (${nextPlayer.cards.length} kartu)`;
+									
+								await naze.sendText(room.chat, groupMsg, null, { mentions: [m.sender, nextPlayer.id] });
+								
+								// Send menu to next player
+								await sendUnoCardMenu(naze, nextPlayer.id, room);
+							}
+						} else {
+							await m.reply(`❌ Terjadi kesalahan: ${res}`);
+						}
+						return;
+					}
+				}
+			}
+		}
+
 		if (isCmd) {
 			if (command.endsWith('menu')) {
 				m.react('⏳')
@@ -6528,6 +6756,131 @@ ATURAN:
 				}
 			}
 			break
+			
+			case 'uno': {
+				if (!m.isGroup) return m.reply(global.mess.group);
+				let room = uno[m.chat];
+				
+				switch (args[0]) {
+					case 'join': {
+						if (room) {
+							if (room.state === 'PLAYING') return m.reply('❌ Game sedang berjalan! Tunggu sesi berikutnya.');
+							let res = room.join(m.sender, m.pushName || 'Pemain UNO');
+							if (res === 'ALREADY_JOINED') return m.reply('❌ Kamu sudah bergabung!');
+							if (res === 'ROOM_FULL') return m.reply('❌ Room sudah penuh (maks 8 pemain)!');
+							if (res === 'SUCCESS') {
+								m.reply(`✅ *Berhasil bergabung ke Game UNO!*\n` +
+									`👥 *Pemain saat ini (${room.players.length}/8):*\n` +
+									room.players.map((p, i) => `${i + 1}. @${p.id.split('@')[0]}`).join('\n') +
+									`\n\nMulai game jika sudah cukup: *${prefix}uno start*`, { mentions: room.players.map(p => p.id) });
+							}
+						} else {
+							// Create room and join
+							room = uno[m.chat] = new UnoGame(m.chat);
+							room.join(m.sender, m.pushName || 'Pemain UNO');
+							m.reply(`✅ *Room UNO berhasil dibuat!*\n` +
+								`👥 *Pemain saat ini (1/8):*\n1. @${m.sender.split('@')[0]}\n\n` +
+								`Ketik *${prefix}uno join* untuk ikut bermain!`, { mentions: [m.sender] });
+						}
+					}
+					break;
+					
+					case 'start': {
+						if (!room) return m.reply(`❌ Belum ada room UNO di grup ini! Buat room terlebih dahulu dengan ketik *${prefix}uno join*`);
+						if (room.state === 'PLAYING') return m.reply('❌ Game sudah dimulai!');
+						if (room.players.length < 2) return m.reply('❌ Permainan membutuhkan minimal 2 pemain untuk dimulai!');
+						
+						let res = room.start();
+						if (res === 'SUCCESS') {
+							const topCard = room.discardPile[room.discardPile.length - 1];
+							const topCardFormatted = UnoGame.formatCard(topCard);
+							let activePlayer = room.getCurrentPlayer();
+							
+							let startMsg = `🎮 *GAME UNO DIMULAI!* 🎮\n\n` +
+								`• *Kartu Awal di Meja:* ${topCardFormatted}\n` +
+								`• *Warna Aktif:* ${room.currentColor.toUpperCase()}\n` +
+								`• *Arah Putaran:* Kanan ➡️\n` +
+								`• *Giliran Pertama:* @${activePlayer.id.split('@')[0]}\n\n` +
+								`👥 *Urutan Pemain:*\n` +
+								room.players.map((p, i) => `${i + 1}. @${p.id.split('@')[0]}`).join('\n') +
+								`\n\nSilakan klik tombol di bawah untuk melihat dan memainkan kartu Anda! 👇`;
+								
+							await m.reply(startMsg, { mentions: room.players.map(p => p.id) });
+							
+							// Send first card to group as sticker
+							const stickerBuff = fs.readFileSync('./src/media/uno/' + UnoGame.getCardFileName(topCard));
+							await naze.sendAsSticker(room.chat, stickerBuff, null, { packname: 'Ti Bot UNO', author: 'Farid Suryadi' });
+							
+							// Send first card menu to group chat for the active player
+							await sendUnoCardMenu(naze, activePlayer.id, room);
+						} else {
+							m.reply(`❌ Gagal memulai game: ${res}`);
+						}
+					}
+					break;
+					
+					case 'leave': {
+						if (!room) return m.reply('❌ Tidak ada sesi game UNO aktif di grup ini.');
+						let res = room.leave(m.sender);
+						if (res === 'NOT_IN_ROOM') return m.reply('❌ Kamu tidak berada di room ini!');
+						if (res === 'GAME_ENDED') {
+							m.reply('👋 Sesi game dihentikan karena jumlah pemain kurang dari 2.');
+							delete uno[m.chat];
+						} else if (res === 'SUCCESS') {
+							m.reply(`👋 @${m.sender.split('@')[0]} telah meninggalkan permainan UNO.`, { mentions: [m.sender] });
+							if (room.state === 'PLAYING') {
+								// Notify the next player in turn
+								let nextPlayer = room.getCurrentPlayer();
+								let groupMsg = `👉 Giliran selanjutnya: @${nextPlayer.id.split('@')[0]} (${nextPlayer.cards.length} kartu)`;
+								await naze.sendText(room.chat, groupMsg, null, { mentions: [nextPlayer.id] });
+								await sendUnoCardMenu(naze, nextPlayer.id, room);
+							}
+						}
+					}
+					break;
+					
+					case 'end': case 'delete': {
+						if (!room) return m.reply('❌ Tidak ada room game UNO aktif di grup ini.');
+						const isAdminOrOwner = m.isAdmin || isCreator || room.players[0]?.id === m.sender;
+						if (!isAdminOrOwner) return m.reply('❌ Hanya admin grup, owner bot, atau pembuat room yang dapat menghapus sesi game!');
+						delete uno[m.chat];
+						m.reply('🗑️ Sesi game UNO di grup ini telah berhasil dihapus.');
+					}
+					break;
+					
+					default: {
+						// Fallback: If no sub-command, join the room (convenience)
+						if (!room || room.state === 'WAITING') {
+							if (room) {
+								let res = room.join(m.sender, m.pushName || 'Pemain UNO');
+								if (res === 'ALREADY_JOINED') return m.reply('❌ Kamu sudah bergabung!');
+								if (res === 'ROOM_FULL') return m.reply('❌ Room sudah penuh (maks 8 pemain)!');
+								if (res === 'SUCCESS') {
+									m.reply(`✅ *Berhasil bergabung ke Game UNO!*\n` +
+										`👥 *Pemain saat ini (${room.players.length}/8):*\n` +
+										room.players.map((p, i) => `${i + 1}. @${p.id.split('@')[0]}`).join('\n') +
+										`\n\nMulai game jika sudah cukup: *${prefix}uno start*`, { mentions: room.players.map(p => p.id) });
+								}
+							} else {
+								room = uno[m.chat] = new UnoGame(m.chat);
+								room.join(m.sender, m.pushName || 'Pemain UNO');
+								m.reply(`✅ *Room UNO berhasil dibuat!*\n` +
+									`👥 *Pemain saat ini (1/8):*\n1. @${m.sender.split('@')[0]}\n\n` +
+									`Ketik *${prefix}uno join* untuk ikut bermain!`, { mentions: [m.sender] });
+							}
+						} else {
+							m.reply(`🃏 *GAME UNO BOT* 🃏\n\n` +
+								`*Commands:*\n` +
+								`• \`${prefix}uno\` — Gabung/Buat room baru\n` +
+								`• \`${prefix}uno join\` — Gabung ke room\n` +
+								`• \`${prefix}uno start\` — Mulai permainan (minimal 2 pemain)\n` +
+								`• \`${prefix}uno leave\` — Keluar dari room/permainan\n` +
+								`• \`${prefix}uno end\` — Hentikan sesi permainan`);
+						}
+					}
+				}
+			}
+			break;
 			
 			// Menu
 			case 'menu': {
